@@ -265,11 +265,16 @@ if debug_mode:
     st.dataframe(filtered_df[['code', 'name', 'status', 'price']].head()) # assumes 'code' exists
 
 # Filter: Status ('onsale' vs 'out of stock')
-if 'status' in filtered_df.columns:
+# Checking against the 'stock' column which user confirmed holds the status
+if 'stock' in filtered_df.columns:
     # Normalize
-    filtered_df['status_norm'] = filtered_df['status'].astype(str).str.lower().str.strip()
+    filtered_df['stock_norm'] = filtered_df['stock'].astype(str).str.lower().str.strip()
+    
     if not show_sold_out:
-        filtered_df = filtered_df[filtered_df['status_norm'] != 'out of stock']
+        # Exclude rows where stock is 'out of stock'
+        # Using ~ (not) operator on the mask
+        mask = filtered_df['stock_norm'].str.contains('out of stock', na=False)
+        filtered_df = filtered_df[~mask]
 
 # Filter: Search (Name OR Code)
 if search_query:
@@ -367,24 +372,40 @@ for idx, row in page_items.iterrows():
         # Opacity Style
         opacity_style = "opacity: 0.5;" if is_sold else ""
         
-        # Container start
-        st.markdown(f'<div style="{opacity_style}">', unsafe_allow_html=True)
+        # Container start (add relative positioning context)
+        st.markdown(f'<div style="{opacity_style} position: relative;">', unsafe_allow_html=True)
 
-        # Image
+        # Image Logic
         img_url = get_image_url(row.get('image_file_id'))
         image_data = fetch_image_from_url(img_url)
         
+        # Prepare Image HTML (Base64 for exact overlay control)
+        img_html = ""
         if image_data:
-            st.image(image_data, use_container_width=True)
+            # Convert bytes to base64
+            b64_img = base64.b64encode(image_data.getvalue()).decode()
+            img_src = f"data:image/jpeg;base64,{b64_img}"
+            img_html = f'<img src="{img_src}" style="width:100%; border-radius:5px;">'
+        elif img_url:
+            img_html = f'<img src="{img_url}" style="width:100%; border-radius:5px;">'
         else:
-            if img_url:
-                st.image(img_url, use_container_width=True)
-            else:
-                st.write(T['no_image'])
+            img_html = f'<div style="width:100%; height:200px; background:#f0f0f0; display:flex; align-items:center; justify-content:center; border-radius:5px;">{T["no_image"]}</div>'
         
-        # Sold Out Overlay
+        # Render Image + Overlay (Centered)
         if is_sold:
-             st.markdown(f"<div style='background-color:rgba(0,0,0,0.7); color:white; padding:5px; text-align:center; font-weight:bold; margin-top:-30px; position:relative; z-index:100;'>SOLD OUT</div>", unsafe_allow_html=True)
+             st.markdown(f"""
+             <div style="position: relative; width: 100%;">
+                {img_html}
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                            color: white; font-size: 24px; font-weight: bold; 
+                            background-color: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
+                            pointer-events: none; white-space: nowrap; z-index: 10;">
+                    SOLD OUT
+                </div>
+             </div>
+             """, unsafe_allow_html=True)
+        else:
+             st.markdown(f"<div>{img_html}</div>", unsafe_allow_html=True)
   
         # Info
         code = row.get('code', '-')
@@ -392,18 +413,23 @@ for idx, row in page_items.iterrows():
         name = row.get('name', 'No Name')
         price_val = row.get('price', 0)
         
-        # Price Display Logic
+        # Price & Display Logic
+        price_plain = f"{T['currency_symbol']}{price_val:,}" # Plain text for message
+        
         if is_sold:
-            price_str = "Price: Private" # Or just "-"
+            price_display = f"<span style='color:#999; text-decoration:line-through; font-size:16px;'>{T['sold_out']}</span>"
+            price_str = price_plain 
         else:
-            price_str = f"{T['currency_symbol']}{price_val:,}"
+            # Blue Color (#007bff), Larger Font (+2 -> approx 18px ~ 20px)
+            price_display = f"<span style='color:#007bff; font-weight:bold; font-size:20px;'>{price_plain}</span>"
+            price_str = price_plain
         
         size = row.get('size', '-')
         condition = row.get('condition', '-')
         
         # Title & Price
         st.markdown(f"<div class='product-title'>[{brand}] {name}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='product-price'>{price_str}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='product-price'>{price_display}</div>", unsafe_allow_html=True)
             
         # Meta Info: Code | Size | Condition
         # Meta Info: Code | Size | Condition
