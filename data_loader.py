@@ -105,6 +105,30 @@ def load_data():
             cols[0] = 'code'
             df.columns = cols
 
+        # [NEW] Brand Normalization
+        if 'brand' in df.columns:
+            def normalize_brand(val):
+                if not isinstance(val, str):
+                    return str(val)
+                s = val.strip().lower()
+                
+                # Specific mappings (Order matters: more specific first if needed, but here generic contains check works)
+                if 'polo' in s:
+                    return 'Polo'
+                if 'nike' in s:
+                    return 'Nike'
+                if 'adidas' in s:
+                    return 'Adidas'
+                if 'cp company' in s or 'c.p' in s:
+                     return 'C.P. Company'
+                if 'stone island' in s:
+                     return 'Stone Island'
+                
+                # Default: Title Case (e.g. "tommy hilfiger" -> "Tommy Hilfiger")
+                return val.strip().title()
+                
+            df['brand'] = df['brand'].apply(normalize_brand)
+            
         # [MODIFIED] Image Fallback Logic
         fallback_image_url = "https://drive.google.com/thumbnail?id=1Wk4sdliFYg8I8TvyDkUFWgemxXKq9fwB&sz=w1000"
         # The user provided a view link: "https://drive.google.com/file/d/1Wk4sdliFYg8I8TvyDkUFWgemxXKq9fwB/view?usp=drive_link"
