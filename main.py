@@ -293,7 +293,9 @@ if show_arrived_only:
     # Helper to check if "has arrival info" (meaning NOT arrived yet)
     def has_arrival_info(val):
         s = str(val).strip().lower()
-        return s and s != 'nan' and s != 'nat' and s != 'none' and s != ''
+        # Explicitly return boolean to avoid TypeError with ~ operator
+        is_valid = s and s != 'nan' and s != 'nat' and s != 'none' and s != ''
+        return bool(is_valid)
         
     # Apply mask: Keep only rows where has_arrival_info is False
     if 'arrival_date' in filtered_df.columns:
