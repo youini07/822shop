@@ -468,6 +468,9 @@ for idx, row in page_items.iterrows():
                  
              display_text = f"{T['arrival_title']} : {final_val}"
              
+             # Icon URL (Google Drive direct link)
+             icon_url = "https://drive.google.com/uc?id=1r4Yz3siSebPAp20uRbjBDyDA0x07BKFx"
+             
              st.markdown(f"""
              <div style="position: relative; width: 100%;">
                 <div style="opacity: 0.5;">
@@ -475,9 +478,10 @@ for idx, row in page_items.iterrows():
                 </div>
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
                             color: white; font-size: 22px; font-weight: bold; 
-                            background-color: rgba(0,0,0,0.7); padding: 12px 24px; border-radius: 8px;
-                            pointer-events: none; white-space: nowrap; z-index: 10;">
-                    {display_text}
+                            background-color: rgba(0,0,0,0.7); padding: 15px 30px; border-radius: 10px;
+                            pointer-events: none; z-index: 10; text-align: center; display: flex; flex-direction: column; align-items: center;">
+                    <img src="{icon_url}" style="width: 40px; height: 40px; margin-bottom: 8px;">
+                    <span style="white-space: nowrap;">{display_text}</span>
                 </div>
              </div>
              """, unsafe_allow_html=True)
