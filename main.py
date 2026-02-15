@@ -1,6 +1,11 @@
 import streamlit as st
 import pandas as pd
+import streamlit as st
+import pandas as pd
 from data_loader import load_data, get_image_url, fetch_image_from_url
+from auth_manager import AuthManager
+import base64
+import os
 
 # ... (Previous code)
 
@@ -100,6 +105,11 @@ lang_dict = {
         'arrival_tbd': "ยังไม่กำหนด",
         'show_arrived_only': "แสดงเฉพาะสินค้าพร้อมส่ง",
         'line_btn': "🟢 ติดต่อซื้อทาง Line (คลิก)",
+        'login_tab': "เข้าสู่ระบบ", 'register_tab': "สมัครสมาชิก",
+        'username': "ไอ디 (ID)", 'password': "รหัสผ่าน", 'confirm_password': "ยืนยันรหัสผ่าน",
+        'name': "ชื่อ", 'phone': "เบอร์โทรศัพท์", 'address': "ที่อยู่", 'zipcode': "รหัสไปรษณีย์", 'line_id': "Line ID (ไม่บังคับ)",
+        'login_btn': "เข้าสู่ระบบ", 'register_btn': "สมัครสมาชิก", 'logout': "ออกจากระบบ",
+        'welcome': "ยินดีต้อนรับ", 'my_wishlist': "รายการโปรดของฉัน", 'login_required': "กรุณาเข้าสู่ระบบ",
         'sold_btn': "🚫 สินค้าหมดแล้วค่ะ",
         'currency_symbol': "฿",
         'contact_msg': "[Code: {code}] สนใจสั่งซื้อสินค้า: {brand} {name} ({price})"
@@ -130,6 +140,11 @@ lang_dict = {
         'arrival_tbd': "TBD",
         'show_arrived_only': "Show Arrived Items Only",
         'line_btn': "🟢 Buy via Line",
+        'login_tab': "Login", 'register_tab': "Sign Up",
+        'username': "Username", 'password': "Password", 'confirm_password': "Confirm Password",
+        'name': "Name", 'phone': "Phone", 'address': "Address", 'zipcode': "Zipcode", 'line_id': "Line ID (Optional)",
+        'login_btn': "Login", 'register_btn': "Sign Up", 'logout': "Logout",
+        'welcome': "Welcome", 'my_wishlist': "My Wishlist", 'login_required': "Login Required",
         'sold_btn': "🚫 Item Sold Out",
         'currency_symbol': "฿",
         'contact_msg': "[Code: {code}] I would like to buy: {brand} {name} ({price})"
@@ -160,6 +175,11 @@ lang_dict = {
         'arrival_tbd': "미정",
         'show_arrived_only': "도착한 상품만 보기",
         'line_btn': "🟢 라인으로 구매 문의 (Line Contact)",
+        'login_tab': "로그인", 'register_tab': "회원가입",
+        'username': "아이디", 'password': "비밀번호", 'confirm_password': "비밀번호 확인",
+        'name': "이름", 'phone': "전화번호", 'address': "주소", 'zipcode': "우편번호", 'line_id': "라인ID (선택)",
+        'login_btn': "로그인", 'register_btn': "회원가입", 'logout': "로그아웃",
+        'welcome': "환영합니다", 'my_wishlist': "내 찜 목록 보기", 'login_required': "로그인이 필요합니다",
         'sold_btn': "🚫 품절된 상품입니다",
         'currency_symbol': "฿",
         'contact_msg': "[Code: {code}] 제품으로 문의한 제품입니다. ({brand} {name} {price})"
@@ -219,7 +239,61 @@ if df.empty:
     st.warning("No products found. Please check Google Sheet.")
     st.stop()
 
-# --- Sidebar Filters ---
+# --- Auth & Sidebar ---
+if 'user' not in st.session_state:
+    st.session_state['user'] = None
+
+am = AuthManager()
+
+# Auth UI in Sidebar
+if st.session_state['user']:
+    st.sidebar.success(f"{T['welcome']}, {st.session_state['user']['name']}님!")
+    if st.sidebar.button(T['logout']):
+        st.session_state['user'] = None
+        st.rerun()
+else:
+    auth_tab1, auth_tab2 = st.sidebar.tabs([T['login_tab'], T['register_tab']])
+    
+    with auth_tab1: # Login
+        l_user = st.text_input(T['username'], key='l_user')
+        l_pass = st.text_input(T['password'], type='password', key='l_pass')
+        if st.button(T['login_btn']):
+            success, user_info, msg = am.login_user(l_user, l_pass)
+            if success:
+                st.session_state['user'] = user_info
+                st.success(msg)
+                st.rerun()
+            else:
+                st.error(msg)
+                
+    with auth_tab2: # Register
+        r_user = st.text_input(T['username'], key='r_user')
+        r_pass = st.text_input(T['password'], type='password', key='r_pass')
+        r_pass_conf = st.text_input(T['confirm_password'], type='password', key='r_pass_conf')
+        r_name = st.text_input(T['name'], key='r_name')
+        r_phone = st.text_input(T['phone'], key='r_phone')
+        r_addr = st.text_input(T['address'], key='r_addr')
+        r_zip = st.text_input(T['zipcode'], key='r_zip')
+        r_line = st.text_input(T['line_id'], key='r_line')
+        
+        if st.button(T['register_btn']):
+            if not (r_user and r_pass and r_name and r_phone and r_addr and r_zip):
+                st.error("필수 항목을 모두 입력해주세요.")
+            elif r_pass != r_pass_conf:
+                st.error("비밀번호가 일치하지 않습니다.")
+            elif len(r_pass) < 8: # Logic check only
+                st.error("비밀번호는 8자 이상이어야 합니다.")
+            else:
+                user_data = {
+                    'user_id': r_user, 'password': r_pass, 'name': r_name,
+                    'phone': r_phone, 'address': r_addr, 'zipcode': r_zip, 'line_id': r_line
+                }
+                success, msg = am.register_user(user_data)
+                if success:
+                    st.success(msg)
+                else:
+                    st.error(msg)
+
 st.sidebar.header(T['filter'])
 
 # [DEBUG / INFO] Source Info & Cache Control
@@ -301,6 +375,14 @@ if show_arrived_only:
     if 'arrival_date' in filtered_df.columns:
         mask_has_arrival = filtered_df['arrival_date'].apply(has_arrival_info)
         filtered_df = filtered_df[~mask_has_arrival]
+
+# Filter by My Wishlist (If Logged In)
+if st.session_state['user']:
+    show_my_wishlist = st.sidebar.checkbox(T['my_wishlist'], value=False)
+    if show_my_wishlist:
+        my_likes_ids = am.get_user_likes(st.session_state['user']['user_id'])
+        if 'code' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['code'].astype(str).isin(my_likes_ids)]
 
 if debug_mode:
     st.warning("Debug Mode On")
@@ -420,6 +502,12 @@ st.subheader(T['total_items'].format(total=total_items, current=len(page_items))
 # Responsive Grid
 cols = st.columns(3) 
 
+# Fetch Likes Data (Once per rerun)
+all_counts = am.get_all_like_counts()
+my_likes_set = set()
+if st.session_state['user']:
+    my_likes_set = am.get_user_likes(st.session_state['user']['user_id'])
+
 for idx, row in page_items.iterrows():
     col = cols[idx % 3]
     
@@ -529,6 +617,22 @@ for idx, row in page_items.iterrows():
         # Title & Price
         st.markdown(f"<div class='product-title'>[{brand}] {name}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='product-price'>{price_display}</div>", unsafe_allow_html=True)
+
+        # Heart Button
+        p_code = str(code)
+        likes_num = all_counts.get(p_code, 0)
+        
+        # Determine button label
+        if st.session_state['user']:
+            is_liked = p_code in my_likes_set
+            heart_icon = "❤️" if is_liked else "🤍"
+            # Button key must be unique per item
+            if st.button(f"{heart_icon} {likes_num}", key=f"like_{p_code}"):
+                 am.toggle_like(st.session_state['user']['user_id'], p_code)
+                 st.rerun()
+        else:
+             if st.button(f"🤍 {likes_num}", key=f"like_{p_code}"):
+                 st.toast(T['login_required'], icon="🔒")
             
         # Meta Info: Code | Size | Condition
         # Meta Info: Code | Size | Condition
