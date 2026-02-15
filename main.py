@@ -98,6 +98,7 @@ lang_dict = {
         'date_title': "📅 วันที่ลงขาย",
         'arrival_title': "วันที่คาดว่าจะมาถึง",
         'arrival_tbd': "ยังไม่กำหนด",
+        'show_arrived_only': "แสดงเฉพาะสินค้าพร้อมส่ง",
         'line_btn': "🟢 ติดต่อซื้อทาง Line (คลิก)",
         'sold_btn': "🚫 สินค้าหมดแล้วค่ะ",
         'currency_symbol': "฿",
@@ -127,6 +128,7 @@ lang_dict = {
         'date_title': "📅 Date Added",
         'arrival_title': "ETA",
         'arrival_tbd': "TBD",
+        'show_arrived_only': "Show Arrived Items Only",
         'line_btn': "🟢 Buy via Line",
         'sold_btn': "🚫 Item Sold Out",
         'currency_symbol': "฿",
@@ -156,6 +158,7 @@ lang_dict = {
         'date_title': "📅 등록일",
         'arrival_title': "도착예정일",
         'arrival_tbd': "미정",
+        'show_arrived_only': "도착한 상품만 보기",
         'line_btn': "🟢 라인으로 구매 문의 (Line Contact)",
         'sold_btn': "🚫 품절된 상품입니다",
         'currency_symbol': "฿",
@@ -273,6 +276,9 @@ filter_max = cost_range[1]
 # 6. Status Filter
 show_sold_out = st.sidebar.checkbox(T['show_sold_out'], value=False)
 
+# [NEW] Show Arrived Only Checkbox
+show_arrived_only = st.sidebar.checkbox(T['show_arrived_only'], value=False)
+
 # 7. Debug Mode
 debug_mode = st.sidebar.checkbox("🛠️ Debug Mode", value=False)
 
@@ -281,6 +287,18 @@ sort_option = st.selectbox(T['sort'], T['sort_options'])
 
 # --- App Logic: Filtering ---
 filtered_df = df.copy()
+
+# Filter by Arrival Status (Show Arrived Only)
+if show_arrived_only:
+    # Helper to check if "has arrival info" (meaning NOT arrived yet)
+    def has_arrival_info(val):
+        s = str(val).strip().lower()
+        return s and s != 'nan' and s != 'nat' and s != 'none' and s != ''
+        
+    # Apply mask: Keep only rows where has_arrival_info is False
+    if 'arrival_date' in filtered_df.columns:
+        mask_has_arrival = filtered_df['arrival_date'].apply(has_arrival_info)
+        filtered_df = filtered_df[~mask_has_arrival]
 
 if debug_mode:
     st.warning("Debug Mode On")
