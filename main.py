@@ -556,13 +556,17 @@ for idx, row in page_items.iterrows():
         
         if is_sold:
              # Zoom Link Wrapper
-             zoom_start = ""
-             zoom_end = ""
-             
-             st.markdown(f"""
+             # [FIX] Prioritize img_url for the link target because opening base64 in new tab is often blocked.
+             link_target = img_url if img_url else ""
+             if not link_target and 'img_src' in locals():
+                 link_target = img_src # Fallback (might not work in Chrome but better than nothing)
+
+             overlay_html = f"""
              <div style="position: relative; width: 100%;">
                 <div style="opacity: 0.5;">
-                    {img_html}
+                    <a href="{link_target}" target="_blank" style="display: block; cursor: pointer;">
+                        {img_html}
+                    </a>
                 </div>
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
                             color: white; font-size: 20px; font-weight: bold; 
@@ -571,7 +575,8 @@ for idx, row in page_items.iterrows():
                     {T['sold_out']}
                 </div>
              </div>
-             """, unsafe_allow_html=True)
+             """
+             st.markdown(overlay_html, unsafe_allow_html=True)
         elif is_arrival_valid:
              # Arrival Date Overlay
              # Text: "{T['arrival_title']} : {arrival_date}"
@@ -583,25 +588,17 @@ for idx, row in page_items.iterrows():
                  
              display_text = f"{T['arrival_title']} : {final_val}"
              
-             # Image Source for Link
-             # Extract src from img_html or use img_url
-             # img_html is like <img src="...">
-             # We need the naked URL.
-             # If base64, we can use that too but extensive string.
-             # Best to use `img_src` variable if defined, else `img_url`.
-             
-             link_target = ""
-             if 'img_src' in locals():
+             # [FIX] Prioritize img_url for the link
+             link_target = img_url if img_url else ""
+             if not link_target and 'img_src' in locals():
                  link_target = img_src
-             elif img_url:
-                 link_target = img_url
                  
              # [MODIFIED] No Opacity. Text at bottom. Font 20px.
              # Added <a> wrapper for Zoom.
              
              overlay_html = f"""
              <div style="position: relative; width: 100%;">
-                 <a href="{link_target}" target="_blank" style="display: block;">
+                 <a href="{link_target}" target="_blank" style="display: block; cursor: pointer;">
                      {img_html}
                  </a>
                  <div style="position: absolute; bottom: 10px; left: 0; width: 100%;
@@ -615,14 +612,13 @@ for idx, row in page_items.iterrows():
              st.markdown(overlay_html, unsafe_allow_html=True)
         else:
              # Normal Image - Add Zoom
-             link_target = ""
-             if 'img_src' in locals():
+             # [FIX] Prioritize img_url
+             link_target = img_url if img_url else ""
+             if not link_target and 'img_src' in locals():
                  link_target = img_src
-             elif img_url:
-                 link_target = img_url
                  
              if link_target:
-                 st.markdown(f'<a href="{link_target}" target="_blank">{img_html}</a>', unsafe_allow_html=True)
+                 st.markdown(f'<a href="{link_target}" target="_blank" style="display:block; cursor:pointer;">{img_html}</a>', unsafe_allow_html=True)
              else:
                  st.markdown(f"<div>{img_html}</div>", unsafe_allow_html=True)
   
