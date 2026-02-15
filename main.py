@@ -461,16 +461,14 @@ for idx, row in page_items.iterrows():
                 import urllib.parse
                 encoded_msg = urllib.parse.quote(contact_text)
                 
-                # User Provided Link: https://lin.ee/ALDm68c
-                # This link adds the friend/shows profile but doesn't auto-fill message usually.
-                # So we provide the message for the user to copy.
-                line_url = "https://lin.ee/ALDm68c"
+                # USER PROVIDED BASIC ID: @102ipvys
+                # Use Official Account Auto-Fill Link
+                LINE_ID = "@102ipvys"
+                line_url = f"https://line.me/R/oaMessage/{LINE_ID}/?{encoded_msg}"
                 
-                # Display the message for copying
-                st.caption("👇 Copy this message before chatting / 상담 전 아래 메시지를 복사하세요")
-                st.code(contact_text, language=None)
+                PHONE_NUMBER = "+66838688685"
                 
-                # Line Button
+                # Line Button (Direct Auto-fill)
                 st.markdown(f"""
                 <a href="{line_url}" target="_blank" style="text-decoration:none;">
                     <button style="width:100%; background-color:#06C755; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
