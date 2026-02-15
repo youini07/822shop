@@ -339,8 +339,26 @@ else:
 
 if current_sort == "Newest":
     if 'updated_at' in filtered_df.columns:
-        filtered_df['updated_at'] = pd.to_datetime(filtered_df['updated_at'], errors='coerce')
-        filtered_df = filtered_df.sort_values(by='updated_at', ascending=False)
+        # [MODIFIED] Robust Date Parsing for Sorting
+        # 1. Try format MM/DD (e.g. 02/13) -> defaults to 1900-02-13, good for sorting.
+        parsed_dates = pd.to_datetime(filtered_df['updated_at'], format='%m/%d', errors='coerce')
+        
+        # 2. If NaT, try standard accessible formats (e.g. YYYY-MM-DD)
+        mask = parsed_dates.isna()
+        if mask.any():
+             parsed_dates.loc[mask] = pd.to_datetime(filtered_df.loc[mask, 'updated_at'], errors='coerce')
+        
+        # Create temporary column for sorting to avoid messing up display (if display uses original string)
+        # Actually logic uses 'updated_at' column for display in expander? 
+        # Line 468: st.write(f"{T['date_title']}: {row.get('updated_at', '-')}")
+        # So we should preserve original string?
+        # df is copied to filtered_df. modifying filtered_df['updated_at'] affects display if we use filtered_df for display.
+        # Yes, we use filtered_df in the grid loop. So we should NOT overwrite 'updated_at' with datetime object if we want to keep original string format?
+        # Wait, if we overwrite with datetime, it prints as YYYY-MM-DD which is arguably better than 02/13.
+        # But let's be safe and use a separate column for sorting.
+        
+        filtered_df['sort_date'] = parsed_dates
+        filtered_df = filtered_df.sort_values(by='sort_date', ascending=False)
 elif current_sort == "Price_Low":
     filtered_df = filtered_df.sort_values(by='price', ascending=True)
 elif current_sort == "Price_High":
