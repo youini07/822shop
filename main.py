@@ -98,7 +98,7 @@ lang_dict = {
         'line_btn': "🟢 ติดต่อซื้อทาง Line (คลิก)",
         'sold_btn': "🚫 สินค้าหมดแล้วค่ะ",
         'currency_symbol': "฿",
-        'contact_msg': "สวัสดีค่ะ สนใจสั่งซื้อ รหัสสินค้า: {code} [{brand}] {name} ({price}) ค่ะ"
+        'contact_msg': "[Code: {code}] สนใจสั่งซื้อสินค้า: {brand} {name} ({price})"
     },
     'EN': {
         'title': "Curated Vintage Clothing Shop",
@@ -124,7 +124,7 @@ lang_dict = {
         'line_btn': "🟢 Buy via Line",
         'sold_btn': "🚫 Item Sold Out",
         'currency_symbol': "฿",
-        'contact_msg': "Hello, I want to buy Code: {code} [{brand}] {name} ({price})."
+        'contact_msg': "[Code: {code}] I would like to buy: {brand} {name} ({price})"
     },
     'KR': {
         'title': "엄선된 구제 의류를 만나보세요.",
@@ -150,7 +150,7 @@ lang_dict = {
         'line_btn': "🟢 라인으로 구매 문의 (Line Contact)",
         'sold_btn': "🚫 품절된 상품입니다",
         'currency_symbol': "฿",
-        'contact_msg': "안녕하세요, 상품코드: {code} [{brand}] {name} ({price}) 구매하고 싶습니다."
+        'contact_msg': "[Code: {code}] 제품으로 문의한 제품입니다. ({brand} {name} {price})"
     }
 }
 
@@ -461,22 +461,14 @@ for idx, row in page_items.iterrows():
                 import urllib.parse
                 encoded_msg = urllib.parse.quote(contact_text)
                 
-                LINE_LINK_ID = "주소입력" # Placeholder
-                # If LINE_LINK_ID is a direct link (https...), use it.
-                # If we want to prefill message, we ideally use https://line.me/R/oaMessage/{ID}/?{msg}
-                # But since ID is unknown placeholder, I will use `https://line.me/R/msg/text/?{msg}` which is generic share.
-                # User can then pick the shop contact. 
-                # OR if user supplies ID later, they can switch to oaMessage.
-                # User asked: "내가 알수있는 방법" -> Pre-filled text is the key.
+                # User Provided Link: https://lin.ee/ALDm68c
+                # This link adds the friend/shows profile but doesn't auto-fill message usually.
+                # So we provide the message for the user to copy.
+                line_url = "https://lin.ee/ALDm68c"
                 
-                line_url = f"https://line.me/R/msg/text/?{encoded_msg}"
-                # If the user provides a specific link later like line.me/ti/p/~id, that adds friend but doesn't prefill easily without API.
-                # "line://msg/text/..." is mobile scheme. https link is better.
-                
-                # Check if user put a placeholder link in variables (not implemented here, hardcoded)
-                # I will construct the link to be generic share for now as it guarantees message content.
-                
-                PHONE_NUMBER = "+66838688685"
+                # Display the message for copying
+                st.caption("👇 Copy this message before chatting / 상담 전 아래 메시지를 복사하세요")
+                st.code(contact_text, language=None)
                 
                 # Line Button
                 st.markdown(f"""
