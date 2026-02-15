@@ -358,9 +358,9 @@ for idx, row in page_items.iterrows():
     col = cols[idx % 3]
     
     with col:
-        # Status
-        status_raw = str(row.get('status', '')).lower().strip()
-        is_sold = status_raw == 'out of stock'
+        status_val = str(row.get('status', '')).lower().strip()
+        # Check for 'sold', 'out', or empty price (sometimes indicated as sold)
+        is_sold = 'sold' in status_val or 'out' in status_val
         
         # Opacity Style
         opacity_style = "opacity: 0.5;" if is_sold else ""
@@ -411,7 +411,16 @@ for idx, row in page_items.iterrows():
         # Detail Expander
         with st.expander(T['detail_btn']):
             st.write(T['desc_title'])
-            st.write(row.get('description', '-'))
+            # Robust Description logic
+            desc_text = row.get('description')
+            if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
+                desc_text = row.get('product description') # Try full name
+            if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
+                desc_text = row.get('detail') # Try detail
+            if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
+                 desc_text = '-'
+                 
+            st.write(desc_text)
             st.write(f"---")
             st.write(f"{T['date_title']}: {row.get('updated_at', '-')}")
             
