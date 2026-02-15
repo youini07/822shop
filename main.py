@@ -63,8 +63,8 @@ lang_dict = {
     'TH': {
         'title': "ร้านเสื้อผ้าวินเทจคัดเกรด (822 Shop)",
         'filter': "🔍 ตัวกรอง (Filter)",
-        'search': "ค้นหาสินค้า",
-        'search_placeholder': "เช่น: แจ็คเก็ต Nike",
+        'search': "Search",
+        'search_placeholder': "Ex : jacket(only eng)",
         'brand': "แบรนด์",
         'category': "หมวดหมู่",
         'size': "ขนาด (Size)",
@@ -89,8 +89,8 @@ lang_dict = {
     'EN': {
         'title': "Curated Vintage Clothing Shop",
         'filter': "🔍 Filter",
-        'search': "Search Product",
-        'search_placeholder': "Ex: Nike Jacket",
+        'search': "Search",
+        'search_placeholder': "Ex : jacket(only eng)",
         'brand': "Brand",
         'category': "Category",
         'size': "Size",
@@ -115,8 +115,8 @@ lang_dict = {
     'KR': {
         'title': "엄선된 구제 의류를 만나보세요.",
         'filter': "🔍 필터",
-        'search': "상품명 검색",
-        'search_placeholder': "예: 나이키 자켓",
+        'search': "검색",
+        'search_placeholder': "예 : jacket(only eng)",
         'brand': "브랜드",
         'category': "카테고리",
         'size': "사이즈",
@@ -181,6 +181,12 @@ st.sidebar.header(T['filter'])
 # 1. Search
 search_query = st.sidebar.text_input(T['search'], placeholder=T['search_placeholder'])
 
+# Search Validation (English Only)
+if search_query:
+    if not search_query.isascii():
+        st.sidebar.error("Please enter English only.")
+        search_query = "" # Reset query effectively for filtering
+
 # 2. Brand Filter
 all_brands = sorted([str(x) for x in df['brand'].unique()]) if 'brand' in df.columns else []
 selected_brands = st.sidebar.multiselect(T['brand'], all_brands)
@@ -233,7 +239,7 @@ if 'status' in filtered_df.columns:
     if not show_sold_out:
         filtered_df = filtered_df[filtered_df['status_norm'] != 'out of stock']
 
-# Filter: Search
+# Filter: Search (Targeting 'name' column which corresponds to Column C usually)
 if search_query:
     filtered_df = filtered_df[filtered_df['name'].str.contains(search_query, case=False, na=False)]
 
