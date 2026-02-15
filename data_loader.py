@@ -10,6 +10,7 @@ from io import BytesIO
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/drive.metadata.readonly",
 ]
 
 @st.cache_data(ttl=600)
@@ -29,37 +30,115 @@ def load_data():
         # Authorize gspread
         client = gspread.authorize(creds)
         
-        # DEBUG: Check visible sheets
-        # st.write(f"Connected as: {creds.service_account_email}") 
-        # spreadsheets = client.list_spreadsheet_files()
-        # st.write(f"Visible Sheets: {[s['name'] for s in spreadsheets]}")
-        
         # Open the specific sheet (Find by name, Open by ID)
         # We list files to find the ID because names can be tricky
         spreadsheets = client.list_spreadsheet_files()
-        target_sheet = next((s for s in spreadsheets if s['name'] in ['DB_Products', 'DB_products']), None)
+        
+        # [MODIFIED] Search for "상품목록" ONLY.
+        # We enforce "상품목록" usage.
+        target_sheet = next((s for s in spreadsheets if s['name'] == '상품목록'), None)
         
         if target_sheet:
             sheet = client.open_by_key(target_sheet['id']).sheet1
         else:
-            # If not found via list, try direct open as fallback
-            sheet = client.open("DB_Products").sheet1
+            # If not found via list, try direct open
+            try:
+                sheet = client.open("상품목록").sheet1
+            except Exception as e:
+                st.error("Error: '상품목록' sheet not found. Please share the sheet with the service account.")
+                raise e
             
-        # Get all records
-        data = sheet.get_all_records()
+        # Get all values (list of lists) to handle headers manually
+        data = sheet.get_all_values()
         
         if not data:
             return pd.DataFrame()
 
-        # Convert to DataFrame
-        df = pd.DataFrame(data)
+        # Create DataFrame
+        # Assume first row is header
+        headers = data[0]
+        rows = data[1:]
+        
+        df = pd.DataFrame(rows, columns=headers)
+        
+        # [MODIFIED] Column Mapping (Korean -> English Internal Names)
+        # t_id -> code
+        # brand -> brand
+        # name -> name
+        # category -> category
+        # size -> size
+        # condition -> condition
+        # price -> price
+        # description -> description
+        # image_file_id -> image_file_id
+        # stock -> stock
+        
+        column_mapping = {
+            '제품번호': 'code',
+            't_id': 'code',
+            'cc': 'code',
+            '브랜드': 'brand',
+            '물품명': 'name',
+            '카테고리': 'category',
+            '사이즈': 'size',
+            '컨디션': 'condition',
+            '판매가': 'price',
+            '제품설명': 'description',
+            '이미지': 'image_file_id',
+            '상태': 'stock'
+        }
+        
+        # Normalize headers (strip whitespace)
+        df.columns = [str(c).strip() for c in df.columns]
+        
+        # Apply mapping
+        df.rename(columns=column_mapping, inplace=True)
+        
+        # Normalize headers to lowercase to avoid case sensitivity issues for mapped columns
+        df.columns = [str(c).lower().strip() for c in df.columns]
+        
+        # [Safety Net] Ensure 'code' column exists. If not, assume the first column is 'code'.
+        if 'code' not in df.columns and not df.empty:
+            cols = list(df.columns)
+            cols[0] = 'code'
+            df.columns = cols
+
+        # [MODIFIED] Image Fallback Logic
+        fallback_image_url = "https://drive.google.com/thumbnail?id=1Wk4sdliFYg8I8TvyDkUFWgemxXKq9fwB&sz=w1000"
+        # The user provided a view link: "https://drive.google.com/file/d/1Wk4sdliFYg8I8TvyDkUFWgemxXKq9fwB/view?usp=drive_link"
+        # Extracted ID: 1Wk4sdliFYg8I8TvyDkUFWgemxXKq9fwB
+        
+        if 'image_file_id' in df.columns:
+            # Replace empty strings, NaN, or strict whitespace with Fallback ID/URL
+            # NOTE: get_image_url handles the ID extraction. We can just put the ID '1Wk4sdliFYg8I8TvyDkUFWgemxXKq9fwB'
+            # OR we can pre-fill it.
+            # Let's clean the column first.
+            df['image_file_id'] = df['image_file_id'].astype(str).str.strip()
+            
+            # Identify "empty" values
+            empty_mask = (df['image_file_id'] == '') | (df['image_file_id'].str.lower() == 'nan') | (df['image_file_id'].str.lower() == 'none')
+            
+            # Assign fallback ID
+            df.loc[empty_mask, 'image_file_id'] = '1Wk4sdliFYg8I8TvyDkUFWgemxXKq9fwB'
         
         # Ensure price is numeric
         if 'price' in df.columns:
-            df['price'] = pd.to_numeric(df['price'].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
+            # Handle cases where price might include currency symbols or commas
+            df['price'] = (
+                df['price']
+                .astype(str)
+                .str.replace(r'[^\d]', '', regex=True) # Keep only digits
+            )
+            df['price'] = pd.to_numeric(df['price'], errors='coerce').fillna(0).astype(int)
             
+        # Attach Metadata: Source Sheet Name
+        if target_sheet:
+             df.attrs['source_sheet'] = target_sheet['name']
+        else:
+             df.attrs['source_sheet'] = "Unknown (Fallback)"
+
         return df
-        
+
     except Exception as e:
         st.error(f"데이터를 불러오는 중 오류가 발생했습니다: {e}")
         st.code(traceback.format_exc()) # Print full traceback
