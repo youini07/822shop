@@ -149,14 +149,27 @@ T = lang_dict[lang_code]
 # --- Header ---
 # Check for logo file, otherwise use text
 import os
+import base64
+
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
 if os.path.exists("822logo.png"):
-    # Center Logo: Use columns
-    left_co, cent_co, last_co = st.columns(3)
-    with cent_co:
-        st.image("822logo.png", width=200)
+    # Center Logo: Use HTML/CSS with Base64 to guarantee centering on mobile
+    img_base64 = get_base64_of_bin_file("822logo.png")
+    st.markdown(
+        f"""
+        <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+            <img src="data:image/png;base64,{img_base64}" width="200" style="max-width: 100%;">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 else:
     st.title("822 SHOP")
-st.markdown(T['title'])
+st.markdown(f"<div style='text-align: center; margin-bottom: 20px;'>{T['title']}</div>", unsafe_allow_html=True)
 
 if df.empty:
     st.warning("No products found. Please check Google Sheet.")
