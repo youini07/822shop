@@ -150,7 +150,10 @@ T = lang_dict[lang_code]
 # Check for logo file, otherwise use text
 import os
 if os.path.exists("822logo.png"):
-    st.image("822logo.png", width=200)
+    # Center Logo: Use columns
+    left_co, cent_co, last_co = st.columns(3)
+    with cent_co:
+        st.image("822logo.png", width=200)
 else:
     st.title("822 SHOP")
 st.markdown(T['title'])
@@ -178,20 +181,20 @@ all_sizes = sorted([str(x) for x in df['size'].unique()]) if 'size' in df.column
 selected_sizes = st.sidebar.multiselect(T['size'], all_sizes)
 
 # 5. Price Range
-# Exchange Rate: 1 KRW = 0.026 THB (approx) / 1 THB = 38 KRW
-# We display THB for TH/EN, KRW for KR
-EXCHANGE_RATE = 0.026 if lang_code in ['TH', 'EN'] else 1.0
+# User requested only THB unit display, no conversion (Sheet data is already THB)
+# Exchange Rate: 1.0 (Raw value)
+EXCHANGE_RATE = 1.0
 
-min_price = int(df['price'].min() * EXCHANGE_RATE) if not df.empty else 0
-max_price = int(df['price'].max() * EXCHANGE_RATE) if not df.empty else 10000 
+min_price = int(df['price'].min()) if not df.empty else 0
+max_price = int(df['price'].max()) if not df.empty else 10000 
 
-slider_min_val = int(df['price'].min() * EXCHANGE_RATE)
-slider_max_val = int(df['price'].max() * EXCHANGE_RATE)
+slider_min_val = min_price
+slider_max_val = max_price
 cost_range = st.sidebar.slider(T['price_range'], slider_min_val, slider_max_val, (slider_min_val, slider_max_val))
 
-# Convert back to KRW for filtering
-filter_min = cost_range[0] / EXCHANGE_RATE
-filter_max = cost_range[1] / EXCHANGE_RATE
+# Convert back to KRW for filtering (Same now)
+filter_min = cost_range[0]
+filter_max = cost_range[1]
 
 # 6. Status Filter
 show_sold_out = st.sidebar.checkbox(T['show_sold_out'], value=False)
@@ -244,11 +247,7 @@ sort_map = {
     "가격 높은순": "Price_High", "Price: High to Low (High-Low)": "Price_High", "ราคา: สูงไปต่ำ (High-Low)": "Price_High",
     "이름순": "Name", "Name (Name)": "Name", "ชื่อ (Name)": "Name"
 }
-# Fallback to option string if not in map (should handle list matching)
-# Actually, the selectable options in selectbox are the dict values list.
-# We need to map the *selected string* back to logic.
-# Update logic below to check substring or use index? 
-# Better: Just check if "Low" or "High" or "Newest" or "Name" is in the string.
+# Fallback logic
 s_opt = sort_option
 if "Newest" in s_opt or "ล่าสุด" in s_opt or "최신" in s_opt:
     current_sort = "Newest"
@@ -303,7 +302,7 @@ for idx, row in page_items.iterrows():
         status_raw = str(row.get('status', '')).lower().strip()
         is_sold = status_raw == 'out of stock'
         
-        # Opacity Style for Sold Items
+        # Opacity Style
         opacity_style = "opacity: 0.5;" if is_sold else ""
         
         # Container start
@@ -311,7 +310,6 @@ for idx, row in page_items.iterrows():
 
         # Image
         img_url = get_image_url(row.get('image_file_id'))
-        # Try fetching image bytes
         image_data = fetch_image_from_url(img_url)
         
         if image_data:
@@ -322,13 +320,7 @@ for idx, row in page_items.iterrows():
             else:
                 st.write(T['no_image'])
         
-        # Sold Out Overlay (Text on top or just badge below?)
-        # User requested: "이미지 위에 품절이라고 보여줘"
-        # Since standard st.image doesn't support overlay easily without complex HTML/CSS or image processing,
-        # we will add a visible badge immediately under/above or use a caption. 
-        # For true overlay, we'd need PIL to draw on image or CSS hacking. 
-        # Let's use a strong visual badge first. CSS hacking in Streamlit is brittle.
-        # But wait, user asked "이미지 위에". I will try to use a negative margin text or just a big red header above it.
+        # Sold Out Overlay
         if is_sold:
              st.markdown(f"<div style='background-color:rgba(0,0,0,0.7); color:white; padding:5px; text-align:center; font-weight:bold; margin-top:-30px; position:relative; z-index:100;'>SOLD OUT</div>", unsafe_allow_html=True)
   
@@ -337,9 +329,8 @@ for idx, row in page_items.iterrows():
         name = row.get('name', 'No Name')
         price_val = row.get('price', 0)
         
-        # Currency Convert
-        display_price = int(price_val * EXCHANGE_RATE)
-        price_str = f"{T['currency_symbol']}{display_price:,}"
+        # Currency: Raw value (THB directly)
+        price_str = f"{T['currency_symbol']}{price_val:,}"
         
         size = row.get('size', '-')
         condition = row.get('condition', '-')
@@ -363,20 +354,20 @@ for idx, row in page_items.iterrows():
             if not is_sold:
                 # Line Contact
                 contact_text = T['contact_msg'].format(brand=brand, name=name, price=price_str)
-                # URL Encode ?? Line doesn't support pre-filled text in `ti/p/` usually, only `line.me/R/msg/text/?`
-                # But user said "connecting address is 주소입력". I will just put the link.
-                # NOTE: line.me/ti/p/ID is purely add friend. line.me/R/oaMessage/ID? is message.
-                # I will use a placeholder variable.
-                LINE_LINK_ID = "주소입력" # Placeholder requested by user
+                LINE_LINK_ID = "주소입력" # Placeholder
+                PHONE_NUMBER = "+66838688685"
                 
-                # If it's a direct ID link (https://line.me/...) we use it. 
-                # If user puts just ID, we frame it. 
-                # "연결되는 주소는 '주소입력'야" -> I'll stick to href="주소입력"
-                
+                # Line Button
                 st.markdown(f"""
                 <a href="{LINE_LINK_ID}" target="_blank" style="text-decoration:none;">
                     <button style="width:100%; background-color:#06C755; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
                         {T['line_btn']}
+                    </button>
+                </a>
+                <br><br>
+                <a href="tel:{PHONE_NUMBER}" style="text-decoration:none;">
+                    <button style="width:100%; background-color:#f8f9fa; color:black; border:1px solid #ccc; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                        📞 Call {PHONE_NUMBER}
                     </button>
                 </a>
                 """, unsafe_allow_html=True)
