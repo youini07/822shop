@@ -250,6 +250,11 @@ max_price = int(df['price'].max()) if not df.empty else 10000
 
 slider_min_val = min_price
 slider_max_val = max_price
+
+# Prevent crash if min == max (e.g. all prices are 0 or only 1 item)
+if slider_max_val <= slider_min_val:
+    slider_max_val = slider_min_val + 10000
+
 cost_range = st.sidebar.slider(T['price_range'], slider_min_val, slider_max_val, (slider_min_val, slider_max_val))
 
 # Convert back to KRW for filtering (Same now)
