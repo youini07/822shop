@@ -466,21 +466,15 @@ for idx, row in page_items.iterrows():
                 LINE_ID = "@102ipvys"
                 line_url = f"https://line.me/R/oaMessage/{LINE_ID}/?{encoded_msg}"
                 
-                PHONE_NUMBER = "+66838688685"
-                
                 # Line Button (Direct Auto-fill)
+                # Added vertical spacing margin below button as requested so it doesn't touch the edge
                 st.markdown(f"""
                 <a href="{line_url}" target="_blank" style="text-decoration:none;">
                     <button style="width:100%; background-color:#06C755; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
                         {T['line_btn']}
                     </button>
                 </a>
-                <br><br>
-                <a href="tel:{PHONE_NUMBER}" style="text-decoration:none;">
-                    <button style="width:100%; background-color:#f8f9fa; color:black; border:1px solid #ccc; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
-                        📞 Call {PHONE_NUMBER}
-                    </button>
-                </a>
+                <div style="height: 30px;"></div>
                 """, unsafe_allow_html=True)
             else:
                  # Sold out button (disabled) or just message
