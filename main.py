@@ -97,6 +97,7 @@ lang_dict = {
         'desc_title': "**รายละเอียดสินค้า**",
         'date_title': "📅 วันที่ลงขาย",
         'arrival_title': "วันที่คาดว่าจะมาถึง",
+        'arrival_tbd': "ยังไม่กำหนด",
         'line_btn': "🟢 ติดต่อซื้อทาง Line (คลิก)",
         'sold_btn': "🚫 สินค้าหมดแล้วค่ะ",
         'currency_symbol': "฿",
@@ -125,6 +126,7 @@ lang_dict = {
         'desc_title': "**Description**",
         'date_title': "📅 Date Added",
         'arrival_title': "ETA",
+        'arrival_tbd': "TBD",
         'line_btn': "🟢 Buy via Line",
         'sold_btn': "🚫 Item Sold Out",
         'currency_symbol': "฿",
@@ -153,6 +155,7 @@ lang_dict = {
         'desc_title': "**제품 설명**",
         'date_title': "📅 등록일",
         'arrival_title': "도착예정일",
+        'arrival_tbd': "미정",
         'line_btn': "🟢 라인으로 구매 문의 (Line Contact)",
         'sold_btn': "🚫 품절된 상품입니다",
         'currency_symbol': "฿",
@@ -457,9 +460,13 @@ for idx, row in page_items.iterrows():
         elif is_arrival_valid:
              # Arrival Date Overlay
              # Text: "{T['arrival_title']} : {arrival_date}"
-             # Handling "미정" explicitly? actually "도착예정일 : 미정" is requested format, so just f-string works.
-             # Font size increased to 22px as requested ("well visible")
-             display_text = f"{T['arrival_title']} : {arrival_val}"
+             # Handling "TBD" / "미정" explicitly
+             
+             final_val = arrival_val
+             if arrival_val.upper() == 'TBD' or arrival_val == '미정':
+                 final_val = T['arrival_tbd']
+                 
+             display_text = f"{T['arrival_title']} : {final_val}"
              
              st.markdown(f"""
              <div style="position: relative; width: 100%;">
