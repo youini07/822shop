@@ -359,8 +359,10 @@ for idx, row in page_items.iterrows():
     
     with col:
         status_val = str(row.get('status', '')).lower().strip()
-        # Check for 'sold', 'out', or empty price (sometimes indicated as sold)
-        is_sold = 'sold' in status_val or 'out' in status_val
+        # User specified: 'out of stock' = Sold, 'on sale' = Available
+        # We will use 'out of stock' as the strict trigger for sold status.
+        # Check if 'out of stock' is in the string to be safe against minor variations
+        is_sold = 'out of stock' in status_val
         
         # Opacity Style
         opacity_style = "opacity: 0.5;" if is_sold else ""
