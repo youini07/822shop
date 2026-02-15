@@ -354,7 +354,10 @@ show_sold_out = st.sidebar.checkbox(T['show_sold_out'], value=False)
 show_arrived_only = st.sidebar.checkbox(T['show_arrived_only'], value=False)
 
 # 7. Debug Mode
-debug_mode = st.sidebar.checkbox("🛠️ Debug Mode", value=False)
+debug_mode = False
+# Only show for admin
+if st.session_state['user'] and st.session_state['user']['user_id'] == 'youini07':
+    debug_mode = st.sidebar.checkbox("🛠️ Debug Mode", value=False)
 
 # --- Sort Options ---
 sort_option = st.selectbox(T['sort'], T['sort_options'])
