@@ -54,6 +54,20 @@ st.markdown("""
 # --- Load Data ---
 with st.spinner('상품 정보를 불러오는 중입니다...'):
     df = load_data()
+    
+    # [Fix] Ensure the first column is treated as 'code' if explicit column missing
+    if not df.empty:
+        # Check if 'code' exists
+        has_code = 'code' in [c.lower() for c in df.columns]
+        
+        # If 'code' not found or we want to force Column A as code (User requirement)
+        # We will strictly alias the first column to 'code' for the app's logic
+        cols = list(df.columns)
+        if cols:
+            # Keep original name as reference but copy data to 'code' or rename default
+            # Renaming is safer to avoid duplication confusion
+            # Case: The first column IS the code column.
+            df.rename(columns={cols[0]: 'code'}, inplace=True)
 
 # --- Localization ---
 if 'lang' not in st.session_state:
