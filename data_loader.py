@@ -113,16 +113,28 @@ def load_data():
                 s = val.strip().lower()
                 
                 # Specific mappings (Order matters: more specific first if needed, but here generic contains check works)
-                if 'polo' in s:
+                if 'polo' in s or 'ralph lauren' in s:
                     return 'Polo'
-                if 'nike' in s:
+                if 'nike' in s or 'jordan' in s:
                     return 'Nike'
                 if 'adidas' in s:
                     return 'Adidas'
+                if 'new balance' in s or 'newbalance' in s:
+                    return 'New Balance'
+                if 'national geographic' in s or 'nationalgeographic' in s:
+                    return 'National Geographic'
+                if 'the north face' in s or 'north face' in s or 'thenorthface' in s:
+                    return 'The North Face'
                 if 'cp company' in s or 'c.p' in s:
                      return 'C.P. Company'
                 if 'stone island' in s:
                      return 'Stone Island'
+                if 'patagonia' in s:
+                    return 'Patagonia'
+                if 'lacoste' in s:
+                    return 'Lacoste'
+                if 'tommy' in s:
+                    return 'Tommy Hilfiger'
                 
                 # Default: Title Case (e.g. "tommy hilfiger" -> "Tommy Hilfiger")
                 return val.strip().title()
