@@ -427,9 +427,12 @@ for idx, row in page_items.iterrows():
         # Render Image + Overlay (Centered)
         # Priority: Sold Out > Arrival Date > Normal
         
-        arrival_date = str(row.get('arrival_date', ''))
+        # Render Image + Overlay (Centered)
+        # Priority: Sold Out > Arrival Date > Normal
+        
+        arrival_val = str(row.get('arrival_date', '')).strip()
         # Check if arrival_date is valid (not nan/empty/nat)
-        has_arrival = arrival_date and arrival_date.lower() != 'nan' and arrival_date.lower() != 'nat' and len(arrival_date.strip()) > 0
+        is_arrival_valid = arrival_val and arrival_val.lower() != 'nan' and arrival_val.lower() != 'nat' and len(arrival_val) > 0
         
         if is_sold:
              st.markdown(f"""
@@ -445,19 +448,23 @@ for idx, row in page_items.iterrows():
                 </div>
              </div>
              """, unsafe_allow_html=True)
-        elif has_arrival:
+        elif is_arrival_valid:
              # Arrival Date Overlay
              # Text: "도착예정일 : {arrival_date}"
+             # Handling "미정" explicitly? actually "도착예정일 : 미정" is requested format, so just f-string works.
+             # Font size increased to 22px as requested ("well visible")
+             display_text = f"도착예정일 : {arrival_val}"
+             
              st.markdown(f"""
              <div style="position: relative; width: 100%;">
                 <div style="opacity: 0.5;">
                     {img_html}
                 </div>
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                            color: white; font-size: 18px; font-weight: bold; 
-                            background-color: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
+                            color: white; font-size: 22px; font-weight: bold; 
+                            background-color: rgba(0,0,0,0.7); padding: 12px 24px; border-radius: 8px;
                             pointer-events: none; white-space: nowrap; z-index: 10;">
-                    도착예정일 : {arrival_date}
+                    {display_text}
                 </div>
              </div>
              """, unsafe_allow_html=True)
