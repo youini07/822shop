@@ -210,6 +210,15 @@ if df.empty:
 # --- Sidebar Filters ---
 st.sidebar.header(T['filter'])
 
+# [DEBUG / INFO] Source Info & Cache Control
+if not df.empty:
+    source_name = df.attrs.get('source_sheet', 'Unknown')
+    st.sidebar.info(f"Loaded from: **{source_name}** ({len(df)} rows)")
+    
+    if st.sidebar.button("🔄 Reload Data (Clear Cache)"):
+        st.cache_data.clear()
+        st.rerun()
+
 # 1. Search
 search_query = st.sidebar.text_input(T['search'], placeholder=T['search_placeholder'])
 
