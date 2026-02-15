@@ -424,15 +424,40 @@ for idx, row in page_items.iterrows():
             img_html = f'<div style="width:100%; height:200px; background:#f0f0f0; display:flex; align-items:center; justify-content:center; border-radius:5px;">{T["no_image"]}</div>'
         
         # Render Image + Overlay (Centered)
+        # Render Image + Overlay (Centered)
+        # Priority: Sold Out > Arrival Date > Normal
+        
+        arrival_date = str(row.get('arrival_date', ''))
+        # Check if arrival_date is valid (not nan/empty/nat)
+        has_arrival = arrival_date and arrival_date.lower() != 'nan' and arrival_date.lower() != 'nat' and len(arrival_date.strip()) > 0
+        
         if is_sold:
              st.markdown(f"""
              <div style="position: relative; width: 100%;">
-                {img_html}
+                <div style="opacity: 0.5;">
+                    {img_html}
+                </div>
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                            color: white; font-size: 24px; font-weight: bold; 
+                            color: white; font-size: 20px; font-weight: bold; 
                             background-color: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
                             pointer-events: none; white-space: nowrap; z-index: 10;">
-                    SOLD OUT
+                    {T['sold_out']}
+                </div>
+             </div>
+             """, unsafe_allow_html=True)
+        elif has_arrival:
+             # Arrival Date Overlay
+             # Text: "도착예정일 : {arrival_date}"
+             st.markdown(f"""
+             <div style="position: relative; width: 100%;">
+                <div style="opacity: 0.5;">
+                    {img_html}
+                </div>
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                            color: white; font-size: 18px; font-weight: bold; 
+                            background-color: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
+                            pointer-events: none; white-space: nowrap; z-index: 10;">
+                    도착예정일 : {arrival_date}
                 </div>
              </div>
              """, unsafe_allow_html=True)
