@@ -555,6 +555,10 @@ for idx, row in page_items.iterrows():
         is_arrival_valid = arrival_val and arrival_val.lower() != 'nan' and arrival_val.lower() != 'nat' and len(arrival_val) > 0
         
         if is_sold:
+             # Zoom Link Wrapper
+             zoom_start = ""
+             zoom_end = ""
+             
              st.markdown(f"""
              <div style="position: relative; width: 100%;">
                 <div style="opacity: 0.5;">
@@ -579,23 +583,48 @@ for idx, row in page_items.iterrows():
                  
              display_text = f"{T['arrival_title']} : {final_val}"
              
-             # Icon removed for performance as requested.
+             # Image Source for Link
+             # Extract src from img_html or use img_url
+             # img_html is like <img src="...">
+             # We need the naked URL.
+             # If base64, we can use that too but extensive string.
+             # Best to use `img_src` variable if defined, else `img_url`.
              
-             st.markdown(f"""
+             link_target = ""
+             if 'img_src' in locals():
+                 link_target = img_src
+             elif img_url:
+                 link_target = img_url
+                 
+             # [MODIFIED] No Opacity. Text at bottom. Font 20px.
+             # Added <a> wrapper for Zoom.
+             
+             overlay_html = f"""
              <div style="position: relative; width: 100%;">
-                <div style="opacity: 0.5;">
-                    {img_html}
-                </div>
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                            color: white; font-size: 22px; font-weight: bold; 
-                            background-color: rgba(0,0,0,0.7); padding: 15px 30px; border-radius: 10px;
-                            pointer-events: none; z-index: 10; text-align: center; white-space: nowrap;">
-                    {display_text}
-                </div>
+                 <a href="{link_target}" target="_blank" style="display: block;">
+                     {img_html}
+                 </a>
+                 <div style="position: absolute; bottom: 10px; left: 0; width: 100%;
+                             color: white; font-size: 20px; font-weight: bold; 
+                             background-color: rgba(0,0,0,0.6); padding: 5px 0; 
+                             pointer-events: none; z-index: 10; text-align: center;">
+                     {display_text}
+                 </div>
              </div>
-             """, unsafe_allow_html=True)
+             """
+             st.markdown(overlay_html, unsafe_allow_html=True)
         else:
-             st.markdown(f"<div>{img_html}</div>", unsafe_allow_html=True)
+             # Normal Image - Add Zoom
+             link_target = ""
+             if 'img_src' in locals():
+                 link_target = img_src
+             elif img_url:
+                 link_target = img_url
+                 
+             if link_target:
+                 st.markdown(f'<a href="{link_target}" target="_blank">{img_html}</a>', unsafe_allow_html=True)
+             else:
+                 st.markdown(f"<div>{img_html}</div>", unsafe_allow_html=True)
   
         # Info
         code = row.get('code', '-')
