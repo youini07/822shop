@@ -358,11 +358,11 @@ for idx, row in page_items.iterrows():
     col = cols[idx % 3]
     
     with col:
-        status_val = str(row.get('status', '')).lower().strip()
+        status_val = str(row.get('status_j', '')).lower().strip()
         # User specified: 'out of stock' = Sold, 'on sale' = Available
         # We will use 'out of stock' as the strict trigger for sold status.
         # Check if 'out of stock' is in the string to be safe against minor variations
-        is_sold = 'out of stock' in status_val
+        is_sold = 'out of stock' in status_val or 'sold' in status_val
         
         # Opacity Style
         opacity_style = "opacity: 0.5;" if is_sold else ""
@@ -406,7 +406,9 @@ for idx, row in page_items.iterrows():
         st.markdown(f"<div class='product-price'>{price_str}</div>", unsafe_allow_html=True)
             
         # Meta Info: Code | Size | Condition
-        st.caption(f"Code : {code} | {T['size']} : {size} | Condition : {condition}")
+        # [DEBUG] Showing Raw Status from Column J to help user identify what the value is
+        raw_status_display = status_val if status_val else "empty"
+        st.caption(f"Code : {code} | {T['size']} : {size} | Condition : {condition} | (St: {raw_status_display})")
         
         st.markdown('</div>', unsafe_allow_html=True) # End opacity div
         
