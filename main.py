@@ -479,7 +479,8 @@ for idx, row in page_items.iterrows():
                  # Fallback if file missing (though we downloaded it) -> Use emoji
                  icon_src = "" 
 
-             icon_html = f'<img src="{icon_src}" style="width: 40px; height: 40px; margin-bottom: 8px;">' if icon_src else '<div style="font-size: 40px; margin-bottom: 8px;">✈️</div>'
+             # 3x Size Increase: 40px -> 120px
+             icon_html = f'<img src="{icon_src}" style="width: 120px; height: 120px; margin-bottom: 8px;">' if icon_src else '<div style="font-size: 120px; margin-bottom: 8px;">✈️</div>'
              
              st.markdown(f"""
              <div style="position: relative; width: 100%;">
