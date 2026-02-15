@@ -64,7 +64,7 @@ lang_dict = {
         'title': "ร้านเสื้อผ้าวินเทจคัดเกรด (822 Shop)",
         'filter': "🔍 ตัวกรอง (Filter)",
         'search': "Search",
-        'search_placeholder': "Ex : jacket(only eng)",
+        'search_placeholder': "Ex : Code or Name",
         'brand': "แบรนด์",
         'category': "หมวดหมู่",
         'size': "ขนาด (Size)",
@@ -84,13 +84,13 @@ lang_dict = {
         'line_btn': "🟢 ติดต่อซื้อทาง Line (คลิก)",
         'sold_btn': "🚫 สินค้าหมดแล้วค่ะ",
         'currency_symbol': "฿",
-        'contact_msg': "สวัสดีค่ะ สนใจสั่งซื้อ [{brand}] {name} ({price}) ค่ะ"
+        'contact_msg': "สวัสดีค่ะ สนใจสั่งซื้อ รหัสสินค้า: {code} [{brand}] {name} ({price}) ค่ะ"
     },
     'EN': {
         'title': "Curated Vintage Clothing Shop",
         'filter': "🔍 Filter",
         'search': "Search",
-        'search_placeholder': "Ex : jacket(only eng)",
+        'search_placeholder': "Ex : Code or Name",
         'brand': "Brand",
         'category': "Category",
         'size': "Size",
@@ -110,13 +110,13 @@ lang_dict = {
         'line_btn': "🟢 Buy via Line",
         'sold_btn': "🚫 Item Sold Out",
         'currency_symbol': "฿",
-        'contact_msg': "Hello, I want to buy [{brand}] {name} ({price})."
+        'contact_msg': "Hello, I want to buy Code: {code} [{brand}] {name} ({price})."
     },
     'KR': {
         'title': "엄선된 구제 의류를 만나보세요.",
         'filter': "🔍 필터",
         'search': "검색",
-        'search_placeholder': "예 : jacket(only eng)",
+        'search_placeholder': "예 : Code or Name",
         'brand': "브랜드",
         'category': "카테고리",
         'size': "사이즈",
@@ -136,7 +136,7 @@ lang_dict = {
         'line_btn': "🟢 라인으로 구매 문의 (Line Contact)",
         'sold_btn': "🚫 품절된 상품입니다",
         'currency_symbol': "₩",
-        'contact_msg': "안녕하세요, [{brand}] {name} ({price}) 구매하고 싶습니다."
+        'contact_msg': "안녕하세요, 상품코드: {code} [{brand}] {name} ({price}) 구매하고 싶습니다."
     }
 }
 
@@ -230,7 +230,7 @@ filtered_df = df.copy()
 if debug_mode:
     st.warning("Debug Mode On")
     st.write("### Data Preview")
-    st.dataframe(filtered_df[['name', 'image_file_id', 'status', 'price']].head())
+    st.dataframe(filtered_df[['code', 'name', 'status', 'price']].head()) # assumes 'code' exists
 
 # Filter: Status ('onsale' vs 'out of stock')
 if 'status' in filtered_df.columns:
@@ -239,9 +239,193 @@ if 'status' in filtered_df.columns:
     if not show_sold_out:
         filtered_df = filtered_df[filtered_df['status_norm'] != 'out of stock']
 
-# Filter: Search (Targeting 'name' column which corresponds to Column C usually)
+# Filter: Search (Name OR Code)
 if search_query:
-    filtered_df = filtered_df[filtered_df['name'].str.contains(search_query, case=False, na=False)]
+    # Check if 'code' column exists (Col A often named 'code')
+    # If not, try to guess or just use 'name'
+    search_col_matches = filtered_df['name'].str.contains(search_query, case=False, na=False)
+    
+    if 'code' in filtered_df.columns:
+        search_col_matches = search_col_matches | filtered_df['code'].astype(str).str.contains(search_query, case=False, na=False)
+    elif 'id' in filtered_df.columns: # fallback guess
+        search_col_matches = search_col_matches | filtered_df['id'].astype(str).str.contains(search_query, case=False, na=False)
+        
+    filtered_df = filtered_df[search_col_matches]
+
+# Filter: Brand
+if selected_brands:
+    filtered_df = filtered_df[filtered_df['brand'].isin(selected_brands)]
+
+# Filter: Category
+if selected_categories:
+    filtered_df = filtered_df[filtered_df['category'].isin(selected_categories)]
+
+# Filter: Size
+if selected_sizes:
+    filtered_df = filtered_df[filtered_df['size'].isin(selected_sizes)]
+
+# Filter: Price
+filtered_df = filtered_df[(filtered_df['price'] >= filter_min) & (filtered_df['price'] <= filter_max)]
+
+# --- App Logic: Sorting ---
+# Map sort options to English keys for logic
+sort_map = {
+    "최신순": "Newest", "Newest (Newest)": "Newest", "ล่าสุด (Newest)": "Newest",
+    "가격 낮은순": "Price_Low", "Price: Low to High (Low-High)": "Price_Low", "ราคา: ต่ำไปสูง (Low-High)": "Price_Low",
+    "가격 높은순": "Price_High", "Price: High to Low (High-Low)": "Price_High", "ราคา: สูงไปต่ำ (High-Low)": "Price_High",
+    "이름순": "Name", "Name (Name)": "Name", "ชื่อ (Name)": "Name"
+}
+# Fallback logic
+s_opt = sort_option
+if "Newest" in s_opt or "ล่าสุด" in s_opt or "최신" in s_opt:
+    current_sort = "Newest"
+elif "Low" in s_opt or "ต่ำไปสูง" in s_opt or "낮은" in s_opt:
+    current_sort = "Price_Low"
+elif "High" in s_opt or "สูงไปต่ำ" in s_opt or "높은" in s_opt:
+    current_sort = "Price_High"
+else:
+    current_sort = "Name"
+
+if current_sort == "Newest":
+    if 'updated_at' in filtered_df.columns:
+        filtered_df['updated_at'] = pd.to_datetime(filtered_df['updated_at'], errors='coerce')
+        filtered_df = filtered_df.sort_values(by='updated_at', ascending=False)
+elif current_sort == "Price_Low":
+    filtered_df = filtered_df.sort_values(by='price', ascending=True)
+elif current_sort == "Price_High":
+    filtered_df = filtered_df.sort_values(by='price', ascending=False)
+elif current_sort == "Name":
+    filtered_df = filtered_df.sort_values(by='name', ascending=True)
+
+# --- App Logic: Pagination ---
+items_per_page = 12
+total_items = len(filtered_df)
+total_pages = max(1, (total_items - 1) // items_per_page + 1)
+
+if total_pages > 1:
+    st.sidebar.markdown("---")
+    st.sidebar.subheader(T['page'])
+    page = st.sidebar.number_input(T['page'], min_value=1, max_value=total_pages, value=1, label_visibility="collapsed")
+    st.sidebar.caption(T['page_caption'].format(total=total_pages, current=page))
+else:
+    page = 1
+
+# Slice Data
+start_idx = (page - 1) * items_per_page
+end_idx = start_idx + items_per_page
+page_items = filtered_df.iloc[start_idx:end_idx]
+
+# --- Display Grid ---
+st.divider()
+st.subheader(T['total_items'].format(total=total_items, current=len(page_items)))
+
+# Responsive Grid
+cols = st.columns(3) 
+
+for idx, row in page_items.iterrows():
+    col = cols[idx % 3]
+    
+    with col:
+        # Status
+        status_raw = str(row.get('status', '')).lower().strip()
+        is_sold = status_raw == 'out of stock'
+        
+        # Opacity Style
+        opacity_style = "opacity: 0.5;" if is_sold else ""
+        
+        # Container start
+        st.markdown(f'<div style="{opacity_style}">', unsafe_allow_html=True)
+
+        # Image
+        img_url = get_image_url(row.get('image_file_id'))
+        image_data = fetch_image_from_url(img_url)
+        
+        if image_data:
+            st.image(image_data, use_container_width=True)
+        else:
+            if img_url:
+                st.image(img_url, use_container_width=True)
+            else:
+                st.write(T['no_image'])
+        
+        # Sold Out Overlay
+        if is_sold:
+             st.markdown(f"<div style='background-color:rgba(0,0,0,0.7); color:white; padding:5px; text-align:center; font-weight:bold; margin-top:-30px; position:relative; z-index:100;'>SOLD OUT</div>", unsafe_allow_html=True)
+  
+        # Info
+        code = row.get('code', '-')
+        brand = row.get('brand', 'Unknown')
+        name = row.get('name', 'No Name')
+        price_val = row.get('price', 0)
+        
+        # Price Display Logic
+        if is_sold:
+            price_str = "Price: Private" # Or just "-"
+        else:
+            price_str = f"{T['currency_symbol']}{price_val:,}"
+        
+        size = row.get('size', '-')
+        condition = row.get('condition', '-')
+        
+        # Title & Price
+        st.markdown(f"<div class='product-title'>[{brand}] {name}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='product-price'>{price_str}</div>", unsafe_allow_html=True)
+            
+        # Meta Info: Code | Size | Condition
+        st.caption(f"Code : {code} | {T['size']} : {size} | Condition : {condition}")
+        
+        st.markdown('</div>', unsafe_allow_html=True) # End opacity div
+        
+        # Detail Expander
+        with st.expander(T['detail_btn']):
+            st.write(T['desc_title'])
+            st.write(row.get('description', '-'))
+            st.write(f"---")
+            st.write(f"{T['date_title']}: {row.get('updated_at', '-')}")
+            
+            if not is_sold:
+                # Line Contact
+                contact_text = T['contact_msg'].format(code=code, brand=brand, name=name, price=price_str)
+                
+                # Encode message for URL
+                import urllib.parse
+                encoded_msg = urllib.parse.quote(contact_text)
+                
+                LINE_LINK_ID = "주소입력" # Placeholder
+                # If LINE_LINK_ID is a direct link (https...), use it.
+                # If we want to prefill message, we ideally use https://line.me/R/oaMessage/{ID}/?{msg}
+                # But since ID is unknown placeholder, I will use `https://line.me/R/msg/text/?{msg}` which is generic share.
+                # User can then pick the shop contact. 
+                # OR if user supplies ID later, they can switch to oaMessage.
+                # User asked: "내가 알수있는 방법" -> Pre-filled text is the key.
+                
+                line_url = f"https://line.me/R/msg/text/?{encoded_msg}"
+                # If the user provides a specific link later like line.me/ti/p/~id, that adds friend but doesn't prefill easily without API.
+                # "line://msg/text/..." is mobile scheme. https link is better.
+                
+                # Check if user put a placeholder link in variables (not implemented here, hardcoded)
+                # I will construct the link to be generic share for now as it guarantees message content.
+                
+                PHONE_NUMBER = "+66838688685"
+                
+                # Line Button
+                st.markdown(f"""
+                <a href="{line_url}" target="_blank" style="text-decoration:none;">
+                    <button style="width:100%; background-color:#06C755; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                        {T['line_btn']}
+                    </button>
+                </a>
+                <br><br>
+                <a href="tel:{PHONE_NUMBER}" style="text-decoration:none;">
+                    <button style="width:100%; background-color:#f8f9fa; color:black; border:1px solid #ccc; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                        📞 Call {PHONE_NUMBER}
+                    </button>
+                </a>
+                """, unsafe_allow_html=True)
+            else:
+                 st.button(T['sold_btn'], disabled=True, key=f"sold_{idx}")
+
+        st.markdown("---")
 
 # Filter: Brand
 if selected_brands:
