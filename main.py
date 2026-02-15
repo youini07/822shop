@@ -149,7 +149,7 @@ lang_dict = {
         'date_title': "📅 등록일",
         'line_btn': "🟢 라인으로 구매 문의 (Line Contact)",
         'sold_btn': "🚫 품절된 상품입니다",
-        'currency_symbol': "₩",
+        'currency_symbol': "฿",
         'contact_msg': "안녕하세요, 상품코드: {code} [{brand}] {name} ({price}) 구매하고 싶습니다."
     }
 }
@@ -159,6 +159,24 @@ st.sidebar.markdown("### 🌐 Language")
 lang_code = st.sidebar.radio("Language", ('TH', 'EN', 'KR'), horizontal=True, label_visibility="collapsed")
 st.session_state.lang = lang_code
 T = lang_dict[lang_code]
+
+
+# ... (Skip unchanged until grid loop)
+
+
+# [NOTE] Make sure to scroll down to grid loop logic usage below
+
+# ...
+
+# Inside the Grid Loop (lines ~380+)
+# Since I cannot edit disjoint lines easily with replace_file_content unless I include everything in between or use multi_replace,
+# I will use multi_replace if available, but I don't see it in my thought process plan.
+# Wait, I am replacing a big chunk?
+# The request is to fix `lang_dict` (lines ~63) AND the logic below (lines ~360).
+# I will make TWO replace calls. This one handles `lang_dict`.
+
+# Actually, I'll just change `currency_symbol` in lang_dict here.
+
 
 # --- Header ---
 # Check for logo file, otherwise use text
@@ -437,6 +455,7 @@ for idx, row in page_items.iterrows():
                 </a>
                 """, unsafe_allow_html=True)
             else:
-                 st.button(T['sold_btn'], disabled=True, key=f"sold_{idx}")
+                 # Sold out button (disabled) or just message
+                 st.error(T['sold_btn'])
 
         st.markdown("---")
