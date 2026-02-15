@@ -57,37 +57,37 @@ with st.spinner('상품 정보를 불러오는 중입니다...'):
 
 # --- Localization ---
 if 'lang' not in st.session_state:
-    st.session_state.lang = 'KR'
+    st.session_state.lang = 'TH' # Default to Thai
 
 lang_dict = {
-    'KR': {
-        'title': "엄선된 구제 의류를 만나보세요.",
-        'filter': "🔍 필터",
-        'search': "상품명 검색",
-        'search_placeholder': "예: 나이키 자켓",
-        'brand': "브랜드",
-        'category': "카테고리",
-        'size': "사이즈",
-        'price_range': "가격 범위",
-        'show_sold_out': "품절된 상품도 보기 (Out of Stock)",
-        'sort': "정렬 기준",
-        'sort_options': ["최신순", "가격 낮은순", "가격 높은순", "이름순"],
-        'total_items': "총 {total}개의 상품 중 {current}개를 보여줍니다.",
-        'page': "📄 페이지 이동",
-        'page_caption': "총 {total} 페이지 중 {current} 페이지",
-        'sold_out': "🚫 품절 (Sold Out)",
-        'on_sale': "✅ 판매중 (On Sale)",
-        'no_image': "📷 이미지 없음",
-        'detail_btn': "상세 정보 및 구매 (Buy Now)",
-        'desc_title': "**제품 설명**",
-        'date_title': "📅 등록일",
-        'line_btn': "🟢 라인으로 구매 문의 (Line Contact)",
-        'sold_btn': "🚫 품절된 상품입니다",
-        'currency_symbol': "₩",
-        'contact_msg': "안녕하세요, [{brand}] {name} ({price}) 구매하고 싶습니다."
-    },
     'TH': {
-        'title': "Curation Vintage Clothing Shop",
+        'title': "ร้านเสื้อผ้าวินเทจคัดเกรด (822 Shop)",
+        'filter': "🔍 ตัวกรอง (Filter)",
+        'search': "ค้นหาสินค้า",
+        'search_placeholder': "เช่น: แจ็คเก็ต Nike",
+        'brand': "แบรนด์",
+        'category': "หมวดหมู่",
+        'size': "ขนาด (Size)",
+        'price_range': "ช่วงราคา (บาท)",
+        'show_sold_out': "แสดงสินค้าที่หมดแล้ว",
+        'sort': "เรียงตาม",
+        'sort_options': ["ล่าสุด (Newest)", "ราคา: ต่ำไปสูง (Low-High)", "ราคา: สูงไปต่ำ (High-Low)", "ชื่อ (Name)"],
+        'total_items': "แสดง {current} จาก {total} รายการ",
+        'page': "หน้า",
+        'page_caption': "หน้า {current} จาก {total}",
+        'sold_out': "🚫 สินค้าหมด (Sold Out)",
+        'on_sale': "✅ มีสินค้า (In Stock)",
+        'no_image': "📷 ไม่มีรูปภาพ",
+        'detail_btn': "ดูรายละเอียด & สั่งซื้อ",
+        'desc_title': "**รายละเอียดสินค้า**",
+        'date_title': "📅 วันที่ลงขาย",
+        'line_btn': "🟢 ติดต่อซื้อทาง Line (คลิก)",
+        'sold_btn': "🚫 สินค้าหมดแล้วค่ะ",
+        'currency_symbol': "฿",
+        'contact_msg': "สวัสดีค่ะ สนใจสั่งซื้อ [{brand}] {name} ({price}) ค่ะ"
+    },
+    'EN': {
+        'title': "Curated Vintage Clothing Shop",
         'filter': "🔍 Filter",
         'search': "Search Product",
         'search_placeholder': "Ex: Nike Jacket",
@@ -107,16 +107,42 @@ lang_dict = {
         'detail_btn': "Details & Buy",
         'desc_title': "**Description**",
         'date_title': "📅 Date Added",
-        'line_btn': "🟢 Contact via Line",
+        'line_btn': "🟢 Buy via Line",
         'sold_btn': "🚫 Item Sold Out",
         'currency_symbol': "฿",
         'contact_msg': "Hello, I want to buy [{brand}] {name} ({price})."
+    },
+    'KR': {
+        'title': "엄선된 구제 의류를 만나보세요.",
+        'filter': "🔍 필터",
+        'search': "상품명 검색",
+        'search_placeholder': "예: 나이키 자켓",
+        'brand': "브랜드",
+        'category': "카테고리",
+        'size': "사이즈",
+        'price_range': "가격 범위 (KRW)",
+        'show_sold_out': "품절된 상품도 보기 (Out of Stock)",
+        'sort': "정렬 기준",
+        'sort_options': ["최신순", "가격 낮은순", "가격 높은순", "이름순"],
+        'total_items': "총 {total}개의 상품 중 {current}개를 보여줍니다.",
+        'page': "📄 페이지 이동",
+        'page_caption': "총 {total} 페이지 중 {current} 페이지",
+        'sold_out': "🚫 품절 (Sold Out)",
+        'on_sale': "✅ 판매중 (On Sale)",
+        'no_image': "📷 이미지 없음",
+        'detail_btn': "상세 정보 및 구매 (Buy Now)",
+        'desc_title': "**제품 설명**",
+        'date_title': "📅 등록일",
+        'line_btn': "🟢 라인으로 구매 문의 (Line Contact)",
+        'sold_btn': "🚫 품절된 상품입니다",
+        'currency_symbol': "₩",
+        'contact_msg': "안녕하세요, [{brand}] {name} ({price}) 구매하고 싶습니다."
     }
 }
 
 # Language Toggle (Sidebar Top)
 st.sidebar.markdown("### 🌐 Language")
-lang_code = st.sidebar.radio("언어 선택 (Language)", ('KR', 'TH'), horizontal=True, label_visibility="collapsed")
+lang_code = st.sidebar.radio("Language", ('TH', 'EN', 'KR'), horizontal=True, label_visibility="collapsed")
 st.session_state.lang = lang_code
 T = lang_dict[lang_code]
 
@@ -151,19 +177,14 @@ selected_categories = st.sidebar.multiselect(T['category'], all_categories)
 all_sizes = sorted([str(x) for x in df['size'].unique()]) if 'size' in df.columns else []
 selected_sizes = st.sidebar.multiselect(T['size'], all_sizes)
 
-# 5. Price Range (Convert to THB for display slider if TH selected? 
-# For MVP simplicity, slider keeps underlying integer value (KRW usually), but labels might be confusing.
-# Let's assume underlying data is KRW.
+# 5. Price Range
 # Exchange Rate: 1 KRW = 0.026 THB (approx) / 1 THB = 38 KRW
-EXCHANGE_RATE = 0.026 if lang_code == 'TH' else 1.0
+# We display THB for TH/EN, KRW for KR
+EXCHANGE_RATE = 0.026 if lang_code in ['TH', 'EN'] else 1.0
 
 min_price = int(df['price'].min() * EXCHANGE_RATE) if not df.empty else 0
 max_price = int(df['price'].max() * EXCHANGE_RATE) if not df.empty else 10000 
-# Note: Slider logic is tricky with conversion. We'll filter based on raw KRW, but show THB to user?
-# Easier: Filter strictly on data values (KRW). Display THB in UI only.
-# But slider range should visually match.
-# Let's keep slider raw (KRW) for now to avoid complexity in logic, or convert limits.
-# To do it right: Slider returns THB, we convert back to KRW for filtering.
+
 slider_min_val = int(df['price'].min() * EXCHANGE_RATE)
 slider_max_val = int(df['price'].max() * EXCHANGE_RATE)
 cost_range = st.sidebar.slider(T['price_range'], slider_min_val, slider_max_val, (slider_min_val, slider_max_val))
@@ -190,8 +211,6 @@ if debug_mode:
     st.dataframe(filtered_df[['name', 'image_file_id', 'status', 'price']].head())
 
 # Filter: Status ('onsale' vs 'out of stock')
-# Map 'out of stock', 'sold', etc to normalized status if needed
-# Assuming sheet uses 'onsale' and 'out of stock' exactly.
 if 'status' in filtered_df.columns:
     # Normalize
     filtered_df['status_norm'] = filtered_df['status'].astype(str).str.lower().str.strip()
@@ -220,12 +239,25 @@ filtered_df = filtered_df[(filtered_df['price'] >= filter_min) & (filtered_df['p
 # --- App Logic: Sorting ---
 # Map sort options to English keys for logic
 sort_map = {
-    "최신순": "Newest", "Newest": "Newest",
-    "가격 낮은순": "Price_Low", "Price: Low to High": "Price_Low",
-    "가격 높은순": "Price_High", "Price: High to Low": "Price_High",
-    "이름순": "Name", "Name": "Name"
+    "최신순": "Newest", "Newest (Newest)": "Newest", "ล่าสุด (Newest)": "Newest",
+    "가격 낮은순": "Price_Low", "Price: Low to High (Low-High)": "Price_Low", "ราคา: ต่ำไปสูง (Low-High)": "Price_Low",
+    "가격 높은순": "Price_High", "Price: High to Low (High-Low)": "Price_High", "ราคา: สูงไปต่ำ (High-Low)": "Price_High",
+    "이름순": "Name", "Name (Name)": "Name", "ชื่อ (Name)": "Name"
 }
-current_sort = sort_map.get(sort_option, "Newest")
+# Fallback to option string if not in map (should handle list matching)
+# Actually, the selectable options in selectbox are the dict values list.
+# We need to map the *selected string* back to logic.
+# Update logic below to check substring or use index? 
+# Better: Just check if "Low" or "High" or "Newest" or "Name" is in the string.
+s_opt = sort_option
+if "Newest" in s_opt or "ล่าสุด" in s_opt or "최신" in s_opt:
+    current_sort = "Newest"
+elif "Low" in s_opt or "ต่ำไปสูง" in s_opt or "낮은" in s_opt:
+    current_sort = "Price_Low"
+elif "High" in s_opt or "สูงไปต่ำ" in s_opt or "높은" in s_opt:
+    current_sort = "Price_High"
+else:
+    current_sort = "Name"
 
 if current_sort == "Newest":
     if 'updated_at' in filtered_df.columns:
