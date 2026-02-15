@@ -85,7 +85,8 @@ def load_data():
             '판매가': 'price',
             '제품설명': 'description',
             '이미지': 'image_file_id',
-            '상태': 'stock'
+            '상태': 'stock',
+            '등록일': 'updated_at'
         }
         
         # Normalize headers (strip whitespace)
