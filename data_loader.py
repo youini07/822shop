@@ -135,6 +135,12 @@ def load_data():
                     return 'Lacoste'
                 if 'tommy' in s:
                     return 'Tommy Hilfiger'
+                if 'marith' in s:
+                    return 'Marithe'
+                if 'burberry' in s:
+                    return 'Burberry'
+                if 'acmé' in s or 'acme' in s or 'adlv' in s:
+                    return 'ADLV (Acme de la Vie)'
                 
                 # Default: Title Case (e.g. "tommy hilfiger" -> "Tommy Hilfiger")
                 return val.strip().title()
