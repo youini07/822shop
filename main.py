@@ -468,8 +468,18 @@ for idx, row in page_items.iterrows():
                  
              display_text = f"{T['arrival_title']} : {final_val}"
              
-             # Icon URL (Google Drive direct link)
-             icon_url = "https://drive.google.com/uc?id=1r4Yz3siSebPAp20uRbjBDyDA0x07BKFx"
+             # Icon URL (Local File -> Base64)
+             # We try to load 'arrival_icon.png' from current directory
+             icon_src = ""
+             try:
+                 with open("arrival_icon.png", "rb") as f:
+                     b64_icon = base64.b64encode(f.read()).decode()
+                     icon_src = f"data:image/png;base64,{b64_icon}"
+             except:
+                 # Fallback if file missing (though we downloaded it) -> Use emoji
+                 icon_src = "" 
+
+             icon_html = f'<img src="{icon_src}" style="width: 40px; height: 40px; margin-bottom: 8px;">' if icon_src else '<div style="font-size: 40px; margin-bottom: 8px;">✈️</div>'
              
              st.markdown(f"""
              <div style="position: relative; width: 100%;">
@@ -480,7 +490,7 @@ for idx, row in page_items.iterrows():
                             color: white; font-size: 22px; font-weight: bold; 
                             background-color: rgba(0,0,0,0.7); padding: 15px 30px; border-radius: 10px;
                             pointer-events: none; z-index: 10; text-align: center; display: flex; flex-direction: column; align-items: center;">
-                    <img src="{icon_url}" style="width: 40px; height: 40px; margin-bottom: 8px;">
+                    {icon_html}
                     <span style="white-space: nowrap;">{display_text}</span>
                 </div>
              </div>
