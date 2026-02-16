@@ -34,7 +34,9 @@ st.markdown("""
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
     /* Hide Streamlit Header & Footer for App-like feel */
-    header[data-testid="stHeader"] {display: none;}
+    /* [MODIFIED] Do NOT hide header, we need hamburger menu for sidebar */
+    /* header[data-testid="stHeader"] {display: none;} */
+    
     footer {display: none;}
     #MainMenu {display: none;}
     .stDeployButton {display: none;}
