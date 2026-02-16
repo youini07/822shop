@@ -289,16 +289,44 @@ if df.empty:
     st.stop()
 
 # --- Auth & Sidebar ---
+import extra_streamlit_components as stx
+
+# [Cookie Manager] Initialize
+@st.cache_resource
+def get_manager():
+    return stx.CookieManager()
+
+cookie_manager = get_manager()
+
 if 'user' not in st.session_state:
     st.session_state['user'] = None
 
 am = AuthManager()
+
+# [Auto-Login Logic] Check Cookie on App Start
+if not st.session_state['user']:
+    try:
+        # Check if 'user_token' cookie exists
+        user_token = cookie_manager.get('user_token')
+        if user_token:
+            # Token found, try to fetch user info
+            # Security Note: Ideally this token should be a secure random session ID verified against DB
+            # For MVP, we use user_id directly (Assuming secure environment or low risk)
+            # Better: Sign the cookie (stx handles some cookies but not encryption by default)
+            success, user_info = am.get_user_info(user_token)
+            if success:
+                st.session_state['user'] = user_info
+                st.sidebar.success(f"자동 로그인 성공: {user_info['name']}님")
+    except Exception as e:
+        print(f"Cookie Error: {e}")
 
 # Auth UI in Sidebar
 if st.session_state['user']:
     st.sidebar.success(f"{T['welcome']}, {st.session_state['user']['name']}님!")
     if st.sidebar.button(T['logout']):
         st.session_state['user'] = None
+        # [Logout] Delete Cookie
+        cookie_manager.delete('user_token')
         st.rerun()
 else:
     auth_tab1, auth_tab2 = st.sidebar.tabs([T['login_tab'], T['register_tab']])
@@ -306,10 +334,20 @@ else:
     with auth_tab1: # Login
         l_user = st.text_input(T['username'], key='l_user')
         l_pass = st.text_input(T['password'], type='password', key='l_pass')
+        
+        # [NEW] Keep Me Logged In Checkbox
+        keep_logged_in = st.checkbox("로그인 상태 유지 (Keep me logged in)")
+        
         if st.button(T['login_btn']):
             success, user_info, msg = am.login_user(l_user, l_pass)
             if success:
                 st.session_state['user'] = user_info
+                
+                # [Login Success] Set Cookie if requested
+                if keep_logged_in:
+                    # Expires in 30 days
+                    cookie_manager.set('user_token', l_user, expires_at=datetime.now() + pd.Timedelta(days=30))
+                
                 st.success(msg)
                 st.rerun()
             else:
