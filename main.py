@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import streamlit as st
 import pandas as pd
-from data_loader import load_data, get_image_url, fetch_image_from_url
+from data_loader import load_data, get_image_url
 from auth_manager import AuthManager
 import base64
 import os
@@ -641,19 +641,15 @@ for i in range(0, items_per_page, 3):
     
             # Image Logic
             img_url = get_image_url(row.get('image_file_id'))
-            image_data = fetch_image_from_url(img_url)
             
-            # Prepare Image HTML (Base64 for exact overlay control)
+            # Prepare Image HTML (Direct URL)
             img_html = ""
-            if image_data:
-                # Convert bytes to base64
-                b64_img = base64.b64encode(image_data.getvalue()).decode()
-                img_src = f"data:image/jpeg;base64,{b64_img}"
+            
+            # Use Direct URL (Client-side loading)
+            if img_url:
                 # [MODIFIED] Aspect Ratio 9:8 (Top Crop)
-                img_html = f'<img src="{img_src}" style="width:100%; aspect-ratio: 9/8; object-fit: cover; object-position: top; border-radius:5px;">'
-            elif img_url:
-                # [MODIFIED] Aspect Ratio 9:8 (Top Crop)
-                img_html = f'<img src="{img_url}" style="width:100%; aspect-ratio: 9/8; object-fit: cover; object-position: top; border-radius:5px;">'
+                # Removed server-side fetching and base64 encoding
+                img_html = f'<img src="{img_url}" style="width:100%; aspect-ratio: 9/8; object-fit: cover; object-position: top; border-radius:5px;" loading="lazy">'
             else:
                 # [MODIFIED] Aspect Ratio 9:8 for placeholder
                 img_html = f'<div style="width:100%; aspect-ratio: 9/8; background:#f0f0f0; display:flex; align-items:center; justify-content:center; border-radius:5px;">{T["no_image"]}</div>'
@@ -673,8 +669,6 @@ for i in range(0, items_per_page, 3):
                  # Zoom Link Wrapper
                  # [FIX] Prioritize img_url for the link target because opening base64 in new tab is often blocked.
                  link_target = img_url if img_url else ""
-                 if not link_target and 'img_src' in locals():
-                     link_target = img_src # Fallback (might not work in Chrome but better than nothing)
     
                  overlay_html = f"""
                  <div style="position: relative; width: 100%;">
@@ -705,8 +699,6 @@ for i in range(0, items_per_page, 3):
                  
                  # [FIX] Prioritize img_url for the link
                  link_target = img_url if img_url else ""
-                 if not link_target and 'img_src' in locals():
-                     link_target = img_src
                      
                  # [MODIFIED] No Opacity. Text at bottom. Font 20px.
                  # Added <a> wrapper for Zoom.
@@ -729,8 +721,6 @@ for i in range(0, items_per_page, 3):
                  # Normal Image - Add Zoom
                  # [FIX] Prioritize img_url
                  link_target = img_url if img_url else ""
-                 if not link_target and 'img_src' in locals():
-                     link_target = img_src
                      
                  if link_target:
                      st.markdown(f'<a href="{link_target}" target="_blank" style="display:block; cursor:pointer;">{img_html}</a>', unsafe_allow_html=True)

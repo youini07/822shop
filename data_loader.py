@@ -3,8 +3,8 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 import traceback
-import requests
-from io import BytesIO
+
+
 
 # Define the scope
 SCOPES = [
@@ -214,17 +214,5 @@ def get_image_url(file_id):
     # Fallback and Original
     return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
 
-@st.cache_data(ttl=3600*24, show_spinner=False)
-def fetch_image_from_url(url):
-    """
-    Fetches image bytes from a URL to bypass browser-side blocking.
-    """
-    if not url:
-        return None
-    try:
-        response = requests.get(url, timeout=3)
-        if response.status_code == 200:
-            return BytesIO(response.content)
-    except Exception:
-        return None
-    return None
+
+
