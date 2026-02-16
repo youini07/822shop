@@ -11,11 +11,49 @@ import os
 
 # --- Page Config ---
 st.set_page_config(
-    page_title="Vintage Catalog",
+    page_title="822 SHOP",
     page_icon="🛍️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed", # On Mobile, collapsed is better
+    menu_items={
+        'Get Help': 'https://www.google.com',
+        'Report a bug': "https://www.google.com",
+        'About': "# 822 SHOP Catalog App"
+    }
 )
+
+# [PWA] Inject Meta Tags for Mobile App Experience
+# 1. apple-mobile-web-app-capable: Hides Safari UI (Address bar)
+# 2. apple-mobile-web-app-status-bar-style: Status bar color
+# 3. viewport: Prevents zooming, critical for app-feel
+# 4. theme-color: Android Chrome address bar color
+st.markdown("""
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#ffffff">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<style>
+    /* Hide Streamlit Header & Footer for App-like feel */
+    header[data-testid="stHeader"] {display: none;}
+    footer {display: none;}
+    #MainMenu {display: none;}
+    .stDeployButton {display: none;}
+    
+    /* Global Font & Touch adjustments */
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-user-select: none; /* Disable text selection for app-feel */
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Improve button touch targets */
+    button {
+        min-height: 44px; /* Apple Human Interface Guidelines */
+    }
+</style>
+""", unsafe_allow_html=True)
+
 
 # --- Custom CSS ---
 st.markdown("""
@@ -121,7 +159,7 @@ lang_dict = {
         'welcome': "ยินดีต้อนรับ", 'my_wishlist': "รายการโปรดของฉัน", 'login_required': "กรุณาเข้าสู่ระบบ",
         'sold_btn': "🚫 สินค้าหมดแล้วค่ะ",
         'currency_symbol': "฿",
-        'contact_msg': "[Code: {code}] สนใจสั่งซื้อสินค้า: {brand} {name} ({price})"
+        'contact_msg': "[Code: {code}] สนใจสั่งซื้อสินค้า: {brand} {name} ({price})\n- User ID: {user_id}\n- Name: {user_name}"
     },
     'EN': {
         'title': "Curated Vintage Clothing Shop",
@@ -156,7 +194,7 @@ lang_dict = {
         'welcome': "Welcome", 'my_wishlist': "My Wishlist", 'login_required': "Login Required",
         'sold_btn': "🚫 Item Sold Out",
         'currency_symbol': "฿",
-        'contact_msg': "[Code: {code}] I would like to buy: {brand} {name} ({price})"
+        'contact_msg': "[Code: {code}] I would like to buy: {brand} {name} ({price})\n- User ID: {user_id}\n- Name: {user_name}"
     },
     'KR': {
         'title': "엄선된 구제 의류를 만나보세요.",
@@ -191,7 +229,7 @@ lang_dict = {
         'welcome': "환영합니다", 'my_wishlist': "내 찜 목록 보기", 'login_required': "로그인이 필요합니다",
         'sold_btn': "🚫 품절된 상품입니다",
         'currency_symbol': "฿",
-        'contact_msg': "[Code: {code}] 제품으로 문의한 제품입니다. ({brand} {name} {price})"
+        'contact_msg': "[Code: {code}] 제품으로 문의한 제품입니다. ({brand} {name} {price})\n- User ID: {user_id}\n- Name: {user_name}"
     }
 }
 
@@ -710,28 +748,46 @@ for i in range(0, items_per_page, 3):
                 st.write(f"{T['date_title']}: {row.get('updated_at', '-')}")
                 
                 if not is_sold:
-                    # Line Contact
-                    contact_text = T['contact_msg'].format(code=code, brand=brand, name=name, price=price_str)
-                    
-                    # Encode message for URL
-                    import urllib.parse
-                    encoded_msg = urllib.parse.quote(contact_text)
-                    
-                    # USER PROVIDED BASIC ID: @102ipvys
-                    # Use Official Account Auto-Fill Link
-                    LINE_ID = "@102ipvys"
-                    line_url = f"https://line.me/R/oaMessage/{LINE_ID}/?{encoded_msg}"
-                    
-                    # Line Button (Direct Auto-fill)
-                    # Added vertical spacing margin below button as requested so it doesn't touch the edge
-                    st.markdown(f"""
-                    <a href="{line_url}" target="_blank" style="text-decoration:none;">
-                        <button style="width:100%; background-color:#06C755; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
-                            {T['line_btn']}
-                        </button>
-                    </a>
-                    <div style="height: 30px;"></div>
-                    """, unsafe_allow_html=True)
+                    # Line Contact Logic: Only for Logged-in Users
+                    if st.session_state['user']:
+                        # Get User Info
+                        u_id = st.session_state['user']['user_id']
+                        u_name = st.session_state['user'].get('name', 'Unknown')
+                        
+                        # Format Message with User Info
+                        contact_text = T['contact_msg'].format(
+                            code=code, brand=brand, name=name, price=price_str,
+                            user_id=u_id, user_name=u_name
+                        )
+                        
+                        # Encode message for URL
+                        import urllib.parse
+                        encoded_msg = urllib.parse.quote(contact_text)
+                        
+                        # Use Official Account Auto-Fill Link
+                        LINE_ID = "@102ipvys"
+                        line_url = f"https://line.me/R/oaMessage/{LINE_ID}/?{encoded_msg}"
+                        
+                        # Line Button (Link)
+                        st.markdown(f"""
+                        <a href="{line_url}" target="_blank" style="text-decoration:none;">
+                            <button style="width:100%; background-color:#06C755; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                                {T['line_btn']}
+                            </button>
+                        </a>
+                        <div style="height: 30px;"></div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        # Guest: Show Button that triggers Alert
+                        # Use logic to show st.error when clicked
+                        # st.button returns True on click
+                        if st.button(T['line_btn'], key=f"guest_line_{code}"):
+                            st.toast(T['login_required'], icon="🔒")
+                            st.error(T['login_required'])
+                            
+                        # Spacing for consistency
+                        st.markdown('<div style="height: 30px;"></div>', unsafe_allow_html=True)
+                        
                 else:
                      # Sold out button (disabled) or just message
                      st.error(T['sold_btn'])
