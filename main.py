@@ -57,8 +57,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- Load Data ---
-with st.spinner('상품 정보를 불러오는 중입니다...'):
+# --- Load Data ---
+# [MODIFIED] Custom Loading Indicator
+loading_placeholder = st.empty()
+with loading_placeholder.container():
+    # Center the loading image
+    l_col1, l_col2, l_col3 = st.columns([1, 1, 1]) 
+    with l_col2:
+        # User requested small image. explicit width is safer.
+        st.markdown(
+            f'<div style="display: flex; justify-content: center;"><img src="data:image/gif;base64,{base64.b64encode(open("loading.gif", "rb").read()).decode()}" width="50"></div>',
+            unsafe_allow_html=True
+        )
+
+# Load data (No spinner text to avoid double indicators if cache spinner is on)
+try:
     df = load_data()
+finally:
+    loading_placeholder.empty()
     
     # [Fix] Ensure the first column is treated as 'code' if explicit column missing
     if not df.empty:
