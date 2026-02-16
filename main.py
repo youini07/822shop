@@ -559,11 +559,14 @@ for i in range(0, items_per_page, 3):
                 # Convert bytes to base64
                 b64_img = base64.b64encode(image_data.getvalue()).decode()
                 img_src = f"data:image/jpeg;base64,{b64_img}"
-                img_html = f'<img src="{img_src}" style="width:100%; border-radius:5px;">'
+                # [MODIFIED] Aspect Ratio 9:8 (Top Crop)
+                img_html = f'<img src="{img_src}" style="width:100%; aspect-ratio: 9/8; object-fit: cover; object-position: top; border-radius:5px;">'
             elif img_url:
-                img_html = f'<img src="{img_url}" style="width:100%; border-radius:5px;">'
+                # [MODIFIED] Aspect Ratio 9:8 (Top Crop)
+                img_html = f'<img src="{img_url}" style="width:100%; aspect-ratio: 9/8; object-fit: cover; object-position: top; border-radius:5px;">'
             else:
-                img_html = f'<div style="width:100%; height:200px; background:#f0f0f0; display:flex; align-items:center; justify-content:center; border-radius:5px;">{T["no_image"]}</div>'
+                # [MODIFIED] Aspect Ratio 9:8 for placeholder
+                img_html = f'<div style="width:100%; aspect-ratio: 9/8; background:#f0f0f0; display:flex; align-items:center; justify-content:center; border-radius:5px;">{T["no_image"]}</div>'
             
             # Render Image + Overlay (Centered)
             # Render Image + Overlay (Centered)
