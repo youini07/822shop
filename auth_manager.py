@@ -164,6 +164,29 @@ class AuthManager:
         except Exception as e:
             return False, None, f"로그인 처리 중 오류: {e}"
 
+    def get_user_info(self, user_id):
+        """
+        Get user info by ID (for auto-login via cookie).
+        Returns: (success: bool, user_info: dict/None)
+        """
+        if self.worksheet_customers is None: return False, None
+
+        try:
+            cell = self.worksheet_customers.find(user_id, in_column=1)
+            if not cell:
+                return False, None
+            
+            row_data = self.worksheet_customers.row_values(cell.row)
+            # Row structure: [id, pw, name, phone, ...]
+            user_info = {
+                'user_id': row_data[0],
+                'name': row_data[2],
+                'phone': row_data[3]
+            }
+            return True, user_info
+        except Exception as e:
+            return False, None
+
     def toggle_like(self, user_id, product_code):
         """Toggle like status for a product."""
         if self.worksheet_wishlist is None: return False
