@@ -32,6 +32,14 @@ st.markdown("""
         font-weight: bold;
         margin-top: 10px;
         margin-bottom: 5px;
+        /* [Fixed] 2 lines max with ellipsis */
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        height: 2.8em; /* Fixed height for alignment (~2 lines) */
+        line-height: 1.4em;
     }
     .product-price {
         color: #e63946;
