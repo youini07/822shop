@@ -304,8 +304,15 @@ am = AuthManager()
 # [Auto-Login Logic] Check Cookie on App Start
 if not st.session_state['user']:
     try:
+        # [Fix] Add delay to ensure CookieManager is mounted/ready
+        import time
+        time.sleep(0.5)
+        
         # Check if 'user_token' cookie exists
-        user_token = cookie_manager.get('user_token')
+        # use get_all() to be safe or explicit get
+        cookies = cookie_manager.get_all()
+        user_token = cookies.get('user_token')
+        
         if user_token:
             # Token found, try to fetch user info
             # Security Note: Ideally this token should be a secure random session ID verified against DB
@@ -315,6 +322,8 @@ if not st.session_state['user']:
             if success:
                 st.session_state['user'] = user_info
                 st.sidebar.success(f"자동 로그인 성공: {user_info['name']}님")
+                # Force rerun to update UI state immediately if needed, but sidebar update might be enough
+                # st.rerun() 
     except Exception as e:
         print(f"Cookie Error: {e}")
 
@@ -343,8 +352,13 @@ else:
                 
                 # [Login Success] Set Cookie if requested
                 if keep_logged_in:
+                    from datetime import timedelta
                     # Expires in 30 days
-                    cookie_manager.set('user_token', l_user, expires_at=datetime.now() + pd.Timedelta(days=30))
+                    expires = datetime.now() + timedelta(days=30)
+                    cookie_manager.set('user_token', l_user, expires_at=expires)
+                    # [Critical] Wait for cookie to be set in browser before rerun
+                    import time
+                    time.sleep(1)
                 
                 st.success(msg)
                 st.rerun()
