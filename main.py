@@ -292,11 +292,8 @@ if df.empty:
 import extra_streamlit_components as stx
 
 # [Cookie Manager] Initialize
-@st.cache_resource
-def get_manager():
-    return stx.CookieManager()
-
-cookie_manager = get_manager()
+# CookieManager is a component so it should not be cached with cache_resource as it creates a frontend widget
+cookie_manager = stx.CookieManager(key="cookie_manager")
 
 if 'user' not in st.session_state:
     st.session_state['user'] = None
