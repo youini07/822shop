@@ -482,29 +482,26 @@ elif current_sort == "Name":
     filtered_df = filtered_df.sort_values(by='name', ascending=True)
 
 # --- App Logic: Pagination ---
+# --- App Logic: Pagination ---
+if 'page' not in st.session_state:
+    st.session_state.page = 1
+
 items_per_page = 12
 total_items = len(filtered_df)
 total_pages = max(1, (total_items - 1) // items_per_page + 1)
 
-if total_pages > 1:
-    st.sidebar.markdown("---")
-    st.sidebar.subheader(T['page'])
-    page = st.sidebar.number_input(T['page'], min_value=1, max_value=total_pages, value=1, label_visibility="collapsed")
-    st.sidebar.caption(T['page_caption'].format(total=total_pages, current=page))
-else:
-    page = 1
+# Ensure page is valid
+if st.session_state.page > total_pages:
+    st.session_state.page = 1
 
 # Slice Data
-start_idx = (page - 1) * items_per_page
+start_idx = (st.session_state.page - 1) * items_per_page
 end_idx = start_idx + items_per_page
 page_items = filtered_df.iloc[start_idx:end_idx]
 
-# --- Display Grid ---
+# --- Display Grid (Strict 3 per row) ---
 st.divider()
 st.subheader(T['total_items'].format(total=total_items, current=len(page_items)))
-
-# Responsive Grid
-cols = st.columns(3) 
 
 # Fetch Likes Data (Once per rerun)
 all_counts = am.get_all_like_counts()
@@ -512,204 +509,256 @@ my_likes_set = set()
 if st.session_state['user']:
     my_likes_set = am.get_user_likes(st.session_state['user']['user_id'])
 
-for idx, row in page_items.iterrows():
-    col = cols[idx % 3]
+# Reset index to allow looping by integers
+page_items = page_items.reset_index(drop=True) 
+
+# Iterate in chunks of 3
+for i in range(0, items_per_page, 3):
+    # Get current batch
+    batch = page_items.iloc[i:i+3]
+    if batch.empty:
+        break
+        
+    cols = st.columns(3)
+    for idx, row in batch.iterrows():
+        # idx is relative to batch due to default iterrows but we reset index? 
+        # Actually iterrows returns index from DataFrame. 
+        # If reset_index(drop=True) was called, idx is 0,1,2... within page_items.
+        # But iterating batch.iterrows() preserves the index from page_items.
+        
+        # We need the column index explicitly: 0,1,2
+        col_idx = idx % 3
+        with cols[col_idx]:
+            status_val = str(row.get('stock', '')).lower().strip()
+            # User specified: 'out of stock' = Sold, 'on sale' = Available
+            # We will use 'out of stock' as the strict trigger for sold status.
+            # Check if 'out of stock' is in the string to be safe against minor variations
+            is_sold = 'out of stock' in status_val or 'sold' in status_val
+            
+            # Opacity Style
+            opacity_style = "opacity: 0.5;" if is_sold else ""
+            
+            # Container start (add relative positioning context)
+            st.markdown(f'<div style="{opacity_style} position: relative;">', unsafe_allow_html=True)
     
-    with col:
-        status_val = str(row.get('stock', '')).lower().strip()
-        # User specified: 'out of stock' = Sold, 'on sale' = Available
-        # We will use 'out of stock' as the strict trigger for sold status.
-        # Check if 'out of stock' is in the string to be safe against minor variations
-        is_sold = 'out of stock' in status_val or 'sold' in status_val
-        
-        # Opacity Style
-        opacity_style = "opacity: 0.5;" if is_sold else ""
-        
-        # Container start (add relative positioning context)
-        st.markdown(f'<div style="{opacity_style} position: relative;">', unsafe_allow_html=True)
-
-        # Image Logic
-        img_url = get_image_url(row.get('image_file_id'))
-        image_data = fetch_image_from_url(img_url)
-        
-        # Prepare Image HTML (Base64 for exact overlay control)
-        img_html = ""
-        if image_data:
-            # Convert bytes to base64
-            b64_img = base64.b64encode(image_data.getvalue()).decode()
-            img_src = f"data:image/jpeg;base64,{b64_img}"
-            img_html = f'<img src="{img_src}" style="width:100%; border-radius:5px;">'
-        elif img_url:
-            img_html = f'<img src="{img_url}" style="width:100%; border-radius:5px;">'
-        else:
-            img_html = f'<div style="width:100%; height:200px; background:#f0f0f0; display:flex; align-items:center; justify-content:center; border-radius:5px;">{T["no_image"]}</div>'
-        
-        # Render Image + Overlay (Centered)
-        # Render Image + Overlay (Centered)
-        # Priority: Sold Out > Arrival Date > Normal
-        
-        # Render Image + Overlay (Centered)
-        # Priority: Sold Out > Arrival Date > Normal
-        
-        arrival_val = str(row.get('arrival_date', '')).strip()
-        # Check if arrival_date is valid (not nan/empty/nat)
-        is_arrival_valid = arrival_val and arrival_val.lower() != 'nan' and arrival_val.lower() != 'nat' and len(arrival_val) > 0
-        
-        if is_sold:
-             # Zoom Link Wrapper
-             # [FIX] Prioritize img_url for the link target because opening base64 in new tab is often blocked.
-             link_target = img_url if img_url else ""
-             if not link_target and 'img_src' in locals():
-                 link_target = img_src # Fallback (might not work in Chrome but better than nothing)
-
-             overlay_html = f"""
-             <div style="position: relative; width: 100%;">
-                <div style="opacity: 0.5;">
-                    <a href="{link_target}" target="_blank" style="display: block; cursor: pointer;">
-                        {img_html}
-                    </a>
-                </div>
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                            color: white; font-size: 20px; font-weight: bold; 
-                            background-color: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
-                            pointer-events: none; white-space: nowrap; z-index: 10;">
-                    {T['sold_out']}
-                </div>
-             </div>
-             """
-             st.markdown(overlay_html, unsafe_allow_html=True)
-        elif is_arrival_valid:
-             # Arrival Date Overlay
-             # Text: "{T['arrival_title']} : {arrival_date}"
-             # Handling "TBD" / "미정" explicitly
-             
-             final_val = arrival_val
-             if arrival_val.upper() == 'TBD' or arrival_val == '미정':
-                 final_val = T['arrival_tbd']
-                 
-             display_text = f"{T['arrival_title']} : {final_val}"
-             
-             # [FIX] Prioritize img_url for the link
-             link_target = img_url if img_url else ""
-             if not link_target and 'img_src' in locals():
-                 link_target = img_src
-                 
-             # [MODIFIED] No Opacity. Text at bottom. Font 20px.
-             # Added <a> wrapper for Zoom.
-             
-             overlay_html = f"""
-             <div style="position: relative; width: 100%;">
-                 <a href="{link_target}" target="_blank" style="display: block; cursor: pointer;">
-                     {img_html}
-                 </a>
-                 <div style="position: absolute; bottom: 10px; left: 0; width: 100%;
-                             color: white; font-size: 20px; font-weight: bold; 
-                             background-color: rgba(0,0,0,0.6); padding: 5px 0; 
-                             pointer-events: none; z-index: 10; text-align: center;">
-                     {display_text}
-                 </div>
-             </div>
-             """
-             st.markdown(overlay_html, unsafe_allow_html=True)
-        else:
-             # Normal Image - Add Zoom
-             # [FIX] Prioritize img_url
-             link_target = img_url if img_url else ""
-             if not link_target and 'img_src' in locals():
-                 link_target = img_src
-                 
-             if link_target:
-                 st.markdown(f'<a href="{link_target}" target="_blank" style="display:block; cursor:pointer;">{img_html}</a>', unsafe_allow_html=True)
-             else:
-                 st.markdown(f"<div>{img_html}</div>", unsafe_allow_html=True)
-  
-        # Info
-        code = row.get('code', '-')
-        brand = row.get('brand', 'Unknown')
-        name = row.get('name', 'No Name')
-        price_val = row.get('price', 0)
-        
-        # Price & Display Logic
-        price_plain = f"{T['currency_symbol']}{price_val:,}" # Plain text for message
-        
-        if is_sold:
-            price_display = f"<span style='color:#999; text-decoration:line-through; font-size:16px;'>{T['sold_out']}</span>"
-            price_str = price_plain 
-        else:
-            # Blue Color (#007bff), Larger Font (+2 -> approx 18px ~ 20px)
-            price_display = f"<span style='color:#007bff; font-weight:bold; font-size:20px;'>{price_plain}</span>"
-            price_str = price_plain
-        
-        size = row.get('size', '-')
-        condition = row.get('condition', '-')
-        
-        # Title & Price
-        st.markdown(f"<div class='product-title'>[{brand}] {name}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='product-price'>{price_display}</div>", unsafe_allow_html=True)
-
-        # Heart Button
-        p_code = str(code)
-        likes_num = all_counts.get(p_code, 0)
-        
-        # Determine button label
-        if st.session_state['user']:
-            is_liked = p_code in my_likes_set
-            heart_icon = "❤️" if is_liked else "🤍"
-            # Button key must be unique per item
-            if st.button(f"{heart_icon} {likes_num}", key=f"like_{p_code}"):
-                 am.toggle_like(st.session_state['user']['user_id'], p_code)
-                 st.rerun()
-        else:
-             if st.button(f"🤍 {likes_num}", key=f"like_{p_code}"):
-                 st.toast(T['login_required'], icon="🔒")
+            # Image Logic
+            img_url = get_image_url(row.get('image_file_id'))
+            image_data = fetch_image_from_url(img_url)
             
-        # Meta Info: Code | Size | Condition
-        # Meta Info: Code | Size | Condition
-        st.caption(f"Code : {code} | {T['size']} : {size} | Condition : {condition}")
-        
-        st.markdown('</div>', unsafe_allow_html=True) # End opacity div
-        
-        # Detail Expander
-        with st.expander(T['detail_btn']):
-            st.write(T['desc_title'])
-            # Robust Description logic
-            desc_text = row.get('description')
-            if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
-                desc_text = row.get('product description') # Try full name
-            if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
-                desc_text = row.get('detail') # Try detail
-            if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
-                 desc_text = '-'
-                 
-            st.write(desc_text)
-            st.write(f"---")
-            st.write(f"{T['date_title']}: {row.get('updated_at', '-')}")
-            
-            if not is_sold:
-                # Line Contact
-                contact_text = T['contact_msg'].format(code=code, brand=brand, name=name, price=price_str)
-                
-                # Encode message for URL
-                import urllib.parse
-                encoded_msg = urllib.parse.quote(contact_text)
-                
-                # USER PROVIDED BASIC ID: @102ipvys
-                # Use Official Account Auto-Fill Link
-                LINE_ID = "@102ipvys"
-                line_url = f"https://line.me/R/oaMessage/{LINE_ID}/?{encoded_msg}"
-                
-                # Line Button (Direct Auto-fill)
-                # Added vertical spacing margin below button as requested so it doesn't touch the edge
-                st.markdown(f"""
-                <a href="{line_url}" target="_blank" style="text-decoration:none;">
-                    <button style="width:100%; background-color:#06C755; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
-                        {T['line_btn']}
-                    </button>
-                </a>
-                <div style="height: 30px;"></div>
-                """, unsafe_allow_html=True)
+            # Prepare Image HTML (Base64 for exact overlay control)
+            img_html = ""
+            if image_data:
+                # Convert bytes to base64
+                b64_img = base64.b64encode(image_data.getvalue()).decode()
+                img_src = f"data:image/jpeg;base64,{b64_img}"
+                img_html = f'<img src="{img_src}" style="width:100%; border-radius:5px;">'
+            elif img_url:
+                img_html = f'<img src="{img_url}" style="width:100%; border-radius:5px;">'
             else:
-                 # Sold out button (disabled) or just message
-                 st.error(T['sold_btn'])
+                img_html = f'<div style="width:100%; height:200px; background:#f0f0f0; display:flex; align-items:center; justify-content:center; border-radius:5px;">{T["no_image"]}</div>'
+            
+            # Render Image + Overlay (Centered)
+            # Render Image + Overlay (Centered)
+            # Priority: Sold Out > Arrival Date > Normal
+            
+            # Render Image + Overlay (Centered)
+            # Priority: Sold Out > Arrival Date > Normal
+            
+            arrival_val = str(row.get('arrival_date', '')).strip()
+            # Check if arrival_date is valid (not nan/empty/nat)
+            is_arrival_valid = arrival_val and arrival_val.lower() != 'nan' and arrival_val.lower() != 'nat' and len(arrival_val) > 0
+            
+            if is_sold:
+                 # Zoom Link Wrapper
+                 # [FIX] Prioritize img_url for the link target because opening base64 in new tab is often blocked.
+                 link_target = img_url if img_url else ""
+                 if not link_target and 'img_src' in locals():
+                     link_target = img_src # Fallback (might not work in Chrome but better than nothing)
+    
+                 overlay_html = f"""
+                 <div style="position: relative; width: 100%;">
+                    <div style="opacity: 0.5;">
+                        <a href="{link_target}" target="_blank" style="display: block; cursor: pointer;">
+                            {img_html}
+                        </a>
+                    </div>
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                                color: white; font-size: 20px; font-weight: bold; 
+                                background-color: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
+                                pointer-events: none; white-space: nowrap; z-index: 10;">
+                        {T['sold_out']}
+                    </div>
+                 </div>
+                 """
+                 st.markdown(overlay_html, unsafe_allow_html=True)
+            elif is_arrival_valid:
+                 # Arrival Date Overlay
+                 # Text: "{T['arrival_title']} : {arrival_date}"
+                 # Handling "TBD" / "미정" explicitly
+                 
+                 final_val = arrival_val
+                 if arrival_val.upper() == 'TBD' or arrival_val == '미정':
+                     final_val = T['arrival_tbd']
+                     
+                 display_text = f"{T['arrival_title']} : {final_val}"
+                 
+                 # [FIX] Prioritize img_url for the link
+                 link_target = img_url if img_url else ""
+                 if not link_target and 'img_src' in locals():
+                     link_target = img_src
+                     
+                 # [MODIFIED] No Opacity. Text at bottom. Font 20px.
+                 # Added <a> wrapper for Zoom.
+                 
+                 overlay_html = f"""
+                 <div style="position: relative; width: 100%;">
+                     <a href="{link_target}" target="_blank" style="display: block; cursor: pointer;">
+                         {img_html}
+                     </a>
+                     <div style="position: absolute; bottom: 10px; left: 0; width: 100%;
+                                 color: white; font-size: 20px; font-weight: bold; 
+                                 background-color: rgba(0,0,0,0.6); padding: 5px 0; 
+                                 pointer-events: none; z-index: 10; text-align: center;">
+                         {display_text}
+                     </div>
+                 </div>
+                 """
+                 st.markdown(overlay_html, unsafe_allow_html=True)
+            else:
+                 # Normal Image - Add Zoom
+                 # [FIX] Prioritize img_url
+                 link_target = img_url if img_url else ""
+                 if not link_target and 'img_src' in locals():
+                     link_target = img_src
+                     
+                 if link_target:
+                     st.markdown(f'<a href="{link_target}" target="_blank" style="display:block; cursor:pointer;">{img_html}</a>', unsafe_allow_html=True)
+                 else:
+                     st.markdown(f"<div>{img_html}</div>", unsafe_allow_html=True)
+      
+            # Info
+            code = row.get('code', '-')
+            brand = row.get('brand', 'Unknown')
+            name = row.get('name', 'No Name')
+            price_val = row.get('price', 0)
+            
+            # Price & Display Logic
+            price_plain = f"{T['currency_symbol']}{price_val:,}" # Plain text for message
+            
+            if is_sold:
+                price_display = f"<span style='color:#999; text-decoration:line-through; font-size:16px;'>{T['sold_out']}</span>"
+                price_str = price_plain 
+            else:
+                # Blue Color (#007bff), Larger Font (+2 -> approx 18px ~ 20px)
+                price_display = f"<span style='color:#007bff; font-weight:bold; font-size:20px;'>{price_plain}</span>"
+                price_str = price_plain
+            
+            size = row.get('size', '-')
+            condition = row.get('condition', '-')
+            
+            # Title & Price
+            st.markdown(f"<div class='product-title'>[{brand}] {name}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='product-price'>{price_display}</div>", unsafe_allow_html=True)
+    
+            # Heart Button
+            p_code = str(code)
+            likes_num = all_counts.get(p_code, 0)
+            
+            # Determine button label
+            if st.session_state['user']:
+                is_liked = p_code in my_likes_set
+                heart_icon = "❤️" if is_liked else "🤍"
+                # Button key must be unique per item
+                if st.button(f"{heart_icon} {likes_num}", key=f"like_{p_code}"):
+                     am.toggle_like(st.session_state['user']['user_id'], p_code)
+                     st.rerun()
+            else:
+                 if st.button(f"🤍 {likes_num}", key=f"like_{p_code}"):
+                     st.toast(T['login_required'], icon="🔒")
+                
+            # Meta Info: Code | Size | Condition
+            # Meta Info: Code | Size | Condition
+            st.caption(f"Code : {code} | {T['size']} : {size} | Condition : {condition}")
+            
+            st.markdown('</div>', unsafe_allow_html=True) # End opacity div
+            
+            # Detail Expander
+            with st.expander(T['detail_btn']):
+                st.write(T['desc_title'])
+                # Robust Description logic
+                desc_text = row.get('description')
+                if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
+                    desc_text = row.get('product description') # Try full name
+                if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
+                    desc_text = row.get('detail') # Try detail
+                if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
+                     desc_text = '-'
+                     
+                st.write(desc_text)
+                st.write(f"---")
+                st.write(f"{T['date_title']}: {row.get('updated_at', '-')}")
+                
+                if not is_sold:
+                    # Line Contact
+                    contact_text = T['contact_msg'].format(code=code, brand=brand, name=name, price=price_str)
+                    
+                    # Encode message for URL
+                    import urllib.parse
+                    encoded_msg = urllib.parse.quote(contact_text)
+                    
+                    # USER PROVIDED BASIC ID: @102ipvys
+                    # Use Official Account Auto-Fill Link
+                    LINE_ID = "@102ipvys"
+                    line_url = f"https://line.me/R/oaMessage/{LINE_ID}/?{encoded_msg}"
+                    
+                    # Line Button (Direct Auto-fill)
+                    # Added vertical spacing margin below button as requested so it doesn't touch the edge
+                    st.markdown(f"""
+                    <a href="{line_url}" target="_blank" style="text-decoration:none;">
+                        <button style="width:100%; background-color:#06C755; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                            {T['line_btn']}
+                        </button>
+                    </a>
+                    <div style="height: 30px;"></div>
+                    """, unsafe_allow_html=True)
+                else:
+                     # Sold out button (disabled) or just message
+                     st.error(T['sold_btn'])
+    
+            st.markdown("---")
 
-        st.markdown("---")
+# --- Pagination Controls ---
+if total_pages > 1:
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.divider()
+    
+    # Center Pagination
+    p_col1, p_col2, p_col3 = st.columns([1, 3, 1])
+    with p_col2:
+        st.markdown(f"<div style='text-align: center;'>Page {st.session_state.page} / {total_pages}</div>", unsafe_allow_html=True)
+        
+        # Horizontal Radio Button for Pagination
+        # Generating list of pages. If too many, we might need a smarter widget,
+        # but for now standard range is fine based on user request.
+        
+        # Callback to update page immediately
+        def on_page_change():
+            # We don't need to do anything, the return value update handles it next rerun?
+            # Actually st.radio key binding updates session state.
+            pass
+            
+        # We use a key that is NOT 'page' to avoid conflict if we used 'page' elsewhere (we did in session state)
+        # We'll sync them.
+        
+        selected_p = st.radio(
+            "Go to page:", 
+            options=range(1, total_pages + 1),
+            index=st.session_state.page - 1,
+            horizontal=True,
+            label_visibility="collapsed",
+            key="pagination_radio"
+        )
+        
+        if selected_p != st.session_state.page:
+            st.session_state.page = selected_p
+            st.rerun()
