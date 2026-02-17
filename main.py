@@ -145,14 +145,7 @@ with st.spinner('상품 정보를 불러오는 중입니다...'):
             # Renaming is safer to avoid duplication confusion
             # Case: The first column IS the code column.
             df.rename(columns={cols[0]: 'code'}, inplace=True)
-            
-    # [DEBUG] Show columns in sidebar (Temporary)
-    st.sidebar.warning(f"Columns: {list(df.columns)}")
-    if 'upper_category' in df.columns:
-        st.sidebar.success(f"Upper Cat Loaded! Unique: {len(df['upper_category'].unique())}")
-        st.sidebar.write(df['upper_category'].unique())
-    else:
-        st.sidebar.error("Upper Category Column MISSING")
+
 
 # --- Localization ---
 if 'lang' not in st.session_state:
