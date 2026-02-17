@@ -43,34 +43,16 @@ st.markdown("""
     .stDeployButton {display: none;}
     
     /* Global Font & Touch adjustments */
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Playfair+Display:wght@400;700&family=Prompt:wght@300;400;600&display=swap');
-
-    html, body, [class*="css"] {
-        font-family: 'Prompt', 'Noto Sans KR', sans-serif;
-        background-color: #FAF9F6; /* Off-white background */
-        color: #333333;
-    }
-    
-    /* Dedicated Serif for Headings */
-    h1, h2, h3, .product-title {
-        font-family: 'Playfair Display', 'Prompt', serif !important;
-    }
-
     body {
-        -webkit-user-select: none;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-user-select: none; /* Disable text selection for app-feel */
         user-select: none;
         -webkit-tap-highlight-color: transparent;
     }
     
     /* Improve button touch targets */
     button {
-        min-height: 44px;
-        border-radius: 0px !important; /* Sharp edges for vintage feel */
-    }
-    
-    /* Streamlit specific cleanups */
-    .stApp {
-        background-color: #FAF9F6;
+        min-height: 44px; /* Apple Human Interface Guidelines */
     }
 </style>
 """, unsafe_allow_html=True)
@@ -79,113 +61,46 @@ st.markdown("""
 # --- Custom CSS ---
 st.markdown("""
 <style>
-    /* Card Design */
     .product-card {
         background-color: #ffffff;
-        padding: 0px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* Soft shadow */
-        margin-bottom: 24px;
-        overflow: hidden;
-        transition: transform 0.2s;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
     }
-    .product-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-    }
-    
-    /* Typography */
     .product-title {
-        font-size: 1.15em;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin: 12px 10px 5px 10px;
-        /* Line limits */
+        font-size: 1.1em;
+        font-weight: bold;
+        margin-top: 10px;
+        margin-bottom: 5px;
+        /* [Fixed] 2 lines max with ellipsis */
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         text-overflow: ellipsis;
-        height: 2.8em;
+        height: 2.8em; /* Fixed height for alignment (~2 lines) */
         line-height: 1.4em;
     }
-    
     .product-price {
-        color: #1E3A8A; /* Deep Navy */
-        font-family: 'Playfair Display', serif;
-        font-weight: 700;
-        font-size: 1.3em;
-        margin: 0 10px 15px 10px;
+        color: #e63946;
+        font-weight: bold;
+        font-size: 1.2em;
     }
-    
     .product-meta {
         color: #666;
-        font-size: 0.85em;
-        padding: 0 10px 15px 10px;
-        border-top: 1px solid #eee;
-        margin-top: 10px;
-        padding-top: 10px;
+        font-size: 0.9em;
     }
-
-    /* Badges */
+    .sold-out {
+        color: #999;
+        text-decoration: line-through;
+    }
     .sold-out-badge {
         background-color: #333;
         color: white;
-        padding: 4px 8px;
-        font-size: 0.8em;
-        letter-spacing: 1px;
-    }
-    
-    /* Expander Customization (Detail & Buy) */
-    .streamlit-expanderHeader {
-        background-color: #ffffff;
-        border: 1px solid #dcd8d0;
+        padding: 2px 6px;
         border-radius: 4px;
-        font-family: 'Prompt', sans-serif;
-        font-size: 0.95em;
-        font-weight: 600;
-        color: #1E3A8A; /* Navy Text */
-        margin-top: 10px;
-    }
-    .streamlit-expanderHeader:hover {
-        color: #d4af37; /* Gold on hover */
-        border-color: #d4af37;
-    }
-    
-    /* Expander Content */
-    .streamlit-expanderContent {
-        background-color: #ffffff;
-        border: 1px solid #eee;
-        border-top: none;
-        padding: 15px;
-        color: #333;
-        font-size: 0.9em;
-    }
-
-    /* General Button Styling (Heart, etc) */
-    .stButton button {
-        background-color: #ffffff;
-        border: 1px solid #dcd8d0;
-        color: #333;
-        font-family: 'Prompt', sans-serif;
-        transition: all 0.2s;
-    }
-    .stButton button:hover {
-        border-color: #1E3A8A;
-        color: #1E3A8A;
-    }
-    
-    /* Sidebar Specific Styling */
-    section[data-testid="stSidebar"] {
-        background-color: #EBE7E0; /* Ensure matches config */
-        border-right: 1px solid #dcd8d0;
-    }
-    section[data-testid="stSidebar"] h1, 
-    section[data-testid="stSidebar"] h2, 
-    section[data-testid="stSidebar"] h3 {
-        color: #1E3A8A !important; /* Navy headers in sidebar */
-        font-family: 'Playfair Display', serif !important;
+        font-size: 0.8em;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -825,8 +740,8 @@ for i in range(0, items_per_page, 3):
                 price_display = f"<span style='color:#999; text-decoration:line-through; font-size:16px;'>{T['sold_out']}</span>"
                 price_str = price_plain 
             else:
-                # Deep Navy Color (#1E3A8A), Larger Font
-                price_display = f"<span style='color:#1E3A8A; font-weight:bold; font-size:20px; font-family:Playfair Display;'>{price_plain}</span>"
+                # Blue Color (#007bff), Larger Font (+2 -> approx 18px ~ 20px)
+                price_display = f"<span style='color:#007bff; font-weight:bold; font-size:20px;'>{price_plain}</span>"
                 price_str = price_plain
             
             size = row.get('size', '-')
