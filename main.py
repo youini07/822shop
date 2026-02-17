@@ -275,8 +275,17 @@ if os.path.exists("822logo.png"):
     img_base64 = get_base64_of_bin_file("822logo.png")
     st.markdown(
         f"""
-        <div style="display: flex; justify-content: center; margin-bottom: 20px;">
-            <img src="data:image/png;base64,{img_base64}" width="200" style="max-width: 100%;">
+        <div style="
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            width: 100%; 
+            padding: 40px 0; 
+            margin-bottom: 20px; 
+            background-color: #ffffff; /* White background for the banner area */
+            border-bottom: 1px solid #eee; /* Subtle separation */
+        ">
+            <img src="data:image/png;base64,{img_base64}" style="max-height: 150px; max-width: 90%; width: auto;">
         </div>
         """,
         unsafe_allow_html=True
