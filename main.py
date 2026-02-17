@@ -280,8 +280,8 @@ if os.path.exists("822logo.png"):
             justify-content: center; 
             align-items: center;
             width: 100%; 
-            padding: 40px 0; 
-            margin-bottom: 20px; 
+            padding: 0px 0; 
+            margin-bottom: 10px; 
             background-color: #ffffff; /* White background for the banner area */
             border-bottom: 1px solid #eee; /* Subtle separation */
         ">
