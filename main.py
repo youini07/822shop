@@ -489,7 +489,7 @@ except Exception as e:
     # Fallback or older streamlit version handling could go here
     pass
 
-st.sidebar.header(T['filter'])
+# st.sidebar.header(T['filter']) # Removed as requested
 
 # ... (Previous Code for Sidebar Status / Search) ...
 
