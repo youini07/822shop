@@ -869,40 +869,22 @@ for i in range(0, items_per_page, 3):
                 heart_icon = "❤️" if is_liked else "🤍"
                 # Link triggers query param reload
                 # target="_self" is crucial.
-                like_btn_html = f"""
-                <a href="?toggle_like={p_code}#p_{p_code}" target="_self" style="text-decoration:none; color:inherit; font-size:16px;">
-                    {heart_icon} {likes_num}
-                </a>
-                """
+                like_btn_html = f"""<a href="?toggle_like={p_code}#p_{p_code}" target="_self" style="text-decoration:none; color:inherit; font-size:16px;">{heart_icon} {likes_num}</a>"""
             else:
-                 # Login Required Toast trigger? 
-                 # For HTML, we can't trigger toast easily without JS.
-                 # Just show empty heart and maybe link to top or do nothing.
-                 # Or use a special param ?login_req=1
-                 like_btn_html = f"""
-                 <a href="?toggle_like={p_code}#p_{p_code}" target="_self" style="text-decoration:none; color:inherit; font-size:16px;">
-                    🤍 {likes_num}
-                 </a>
-                 """
+                 # Login Required
+                 like_btn_html = f"""<a href="?toggle_like={p_code}#p_{p_code}" target="_self" style="text-decoration:none; color:inherit; font-size:16px;">🤍 {likes_num}</a>"""
 
             # Render HTML Footer
             # Use flex-wrap: nowrap to Force single line
-            st.markdown(f"""
-            <div id="p_{p_code}" style="
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                margin-top: 10px;
-                flex-wrap: nowrap;
-            ">
-                <div style="font-size: 14px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px;">
-                    Code : {code} | {T['size']} : {size} | Condition : {condition}
-                </div>
-                <div style="flex-shrink: 0;">
-                    {like_btn_html}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            # IMPORTANT: No indentation in the HTML string to avoid markdown code block interpretation
+            st.markdown(f"""<div id="p_{p_code}" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: nowrap;">
+    <div style="font-size: 14px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px;">
+        Code : {code} | {T['size']} : {size} | Condition : {condition}
+    </div>
+    <div style="flex-shrink: 0;">
+        {like_btn_html}
+    </div>
+</div>""", unsafe_allow_html=True)
 
             st.markdown('</div>', unsafe_allow_html=True) # End opacity div
             
