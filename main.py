@@ -502,12 +502,32 @@ if not df.empty:
     
 # [Moved] Filter by My Wishlist (If Logged In) - Moved ABOVE search
 if st.session_state['user']:
-    # 1. Wishlist Checkbox to the Right
-    # Use columns: [Text] [Checkbox]
-    wc1, wc2 = st.sidebar.columns([3, 1])
-    wc1.markdown(f"**{T['my_wishlist']}**")
-    show_my_wishlist = wc2.checkbox("", value=False, key="wishlist_chk", label_visibility="collapsed")
-    # The actual filtering logic applies to filtered_df later, but we capture the flag here
+    # [NEW] Toggle Button Logic (Instead of Checkbox)
+    # 1. Initialize logic state
+    if 'show_wishlist' not in st.session_state:
+        st.session_state.show_wishlist = False
+        
+    # 2. Toggle Function
+    def toggle_wishlist_view():
+        st.session_state.show_wishlist = not st.session_state.show_wishlist
+        
+    # 3. Determine Button Label/Style
+    if st.session_state.show_wishlist:
+        btn_label = f"❤️ {T['my_wishlist']} (ON)"
+        # You could use type="primary" for active state if supported by theme, or just text
+        btn_type = "primary"
+    else:
+        btn_label = f"🤍 {T['my_wishlist']} (OFF)"
+        btn_type = "secondary"
+        
+    # 4. Render Button
+    # Full width button for better mobile touch target
+    # Use on_click callback to handle state toggling cleanly
+    st.sidebar.button(btn_label, type=btn_type, on_click=toggle_wishlist_view, use_container_width=True)
+    
+    # 5. Set the flag for downstream filtering logic
+    show_my_wishlist = st.session_state.show_wishlist
+
 
 # 1. Search
 search_query = st.sidebar.text_input(T['search'], placeholder=T['search_placeholder'])
