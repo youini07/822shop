@@ -186,7 +186,8 @@ lang_dict = {
         'welcome': "ยินดีต้อนรับ", 'my_wishlist': "รายการโปรดของฉัน", 'login_required': "กรุณาเข้าสู่ระบบ",
         'sold_btn': "🚫 สินค้าหมดแล้วค่ะ",
         'currency_symbol': "฿",
-        'contact_msg': "[Code: {code}] สนใจสั่งซื้อสินค้า: {brand} {name} ({price})\n- User ID: {user_id}\n- Name: {user_name}"
+        'contact_msg': "[Code: {code}] สนใจสั่งซื้อสินค้า: {brand} {name} ({price})\n- User ID: {user_id}\n- Name: {user_name}",
+        'measured_size': "ขนาดวัดจริง"
     },
     'EN': {
         'title': "Curated Vintage Clothing Shop",
@@ -222,7 +223,8 @@ lang_dict = {
         'welcome': "Welcome", 'my_wishlist': "My Wishlist", 'login_required': "Login Required",
         'sold_btn': "🚫 Item Sold Out",
         'currency_symbol': "฿",
-        'contact_msg': "[Code: {code}] I would like to buy: {brand} {name} ({price})\n- User ID: {user_id}\n- Name: {user_name}"
+        'contact_msg': "[Code: {code}] I would like to buy: {brand} {name} ({price})\n- User ID: {user_id}\n- Name: {user_name}",
+        'measured_size': "Meas."
     },
     'KR': {
         'title': "엄선된 구제 의류를 만나보세요.",
@@ -258,7 +260,8 @@ lang_dict = {
         'welcome': "환영합니다", 'my_wishlist': "내 찜 목록 보기", 'login_required': "로그인이 필요합니다",
         'sold_btn': "🚫 품절된 상품입니다",
         'currency_symbol': "฿",
-        'contact_msg': "[Code: {code}] 제품으로 문의한 제품입니다. ({brand} {name} {price})\n- User ID: {user_id}\n- Name: {user_name}"
+        'contact_msg': "[Code: {code}] 제품으로 문의한 제품입니다. ({brand} {name} {price})\n- User ID: {user_id}\n- Name: {user_name}",
+        'measured_size': "실측사이즈"
     }
 }
 
