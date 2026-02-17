@@ -13,7 +13,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive.metadata.readonly",
 ]
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=601) # Changed to force re-run
 def load_data():
     """
     Connects to Google Sheets and loads the product data into a Pandas DataFrame.
@@ -61,26 +61,16 @@ def load_data():
         
         df = pd.DataFrame(rows, columns=headers)
         
-        # [MODIFIED] Column Mapping (Korean -> English Internal Names)
-        # t_id -> code
-        # brand -> brand
-        # name -> name
-        # category -> category
-        # size -> size
-        # condition -> condition
-        # price -> price
-        # description -> description
-        # image_file_id -> image_file_id
-        # stock -> stock
-        
         column_mapping = {
             '제품번호': 'code',
             't_id': 'code',
             'cc': 'code',
             '브랜드': 'brand',
             '물품명': 'name',
-            '상위카테고리': 'upper_category', # [NEW] Added mapping
+            '상위카테고리': 'upper_category', # Korean Header
+            'upper category': 'upper_category', # English Header Fallback
             '카테고리': 'category',
+            'category': 'category',
             '사이즈': 'size',
             '컨디션': 'condition',
             '판매가': 'price',
@@ -96,6 +86,13 @@ def load_data():
         
         # Apply mapping
         df.rename(columns=column_mapping, inplace=True)
+        
+        # [DEBUG] Print columns to console
+        print("DEBUG: Loaded Columns:", df.columns.tolist())
+        if 'upper_category' in df.columns:
+            print("DEBUG: Upper Category Sample:", df['upper_category'].unique()[:5])
+        else:
+            print("DEBUG: UPPER CATEGORY MISSING!")
         
         # Normalize headers to lowercase to avoid case sensitivity issues for mapped columns
         df.columns = [str(c).lower().strip() for c in df.columns]
