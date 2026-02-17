@@ -829,27 +829,43 @@ for i in range(0, items_per_page, 3):
             st.markdown(f"<div class='product-title'>[{brand}] {name}</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='product-price'>{price_display}</div>", unsafe_allow_html=True)
     
-            # Heart Button
-            p_code = str(code)
-            likes_num = all_counts.get(p_code, 0)
+            # [NEW LAYOUT] Code/Size/Condition + Wishlist Button in one row
+            # Column Ratios: [Text (3) | Button (1)]
+            m_col1, m_col2 = st.columns([3, 1])
             
-            # Determine button label
-            if st.session_state['user']:
-                is_liked = p_code in my_likes_set
-                heart_icon = "❤️" if is_liked else "🤍"
-                # Button key must be unique per item
-                if st.button(f"{heart_icon} {likes_num}", key=f"like_{p_code}"):
-                     am.toggle_like(st.session_state['user']['user_id'], p_code)
-                     st.rerun()
-            else:
-                 if st.button(f"🤍 {likes_num}", key=f"like_{p_code}"):
-                     st.toast(T['login_required'], icon="🔒")
+            with m_col1:
+                # Increased font size by 2px (default caption is small, ~12-14px). 
+                # Let's target ~14px-16px and ensure it aligns vertically.
+                # Using <span> or <p> with inline style.
+                # margin-top to align with button
+                st.markdown(f"""
+                <div style="font-size: 14px; color: #666; margin-top: 5px;">
+                    Code : {code} | {T['size']} : {size} | Condition : {condition}
+                </div>
+                """, unsafe_allow_html=True)
+
+            with m_col2:
+                # Wishlist Button (Right Aligned via placement in right col)
+                p_code = str(code)
+                likes_num = all_counts.get(p_code, 0)
                 
-            # Meta Info: Code | Size | Condition
-            # Meta Info: Code | Size | Condition
-            st.caption(f"Code : {code} | {T['size']} : {size} | Condition : {condition}")
+                # Determine button label
+                if st.session_state['user']:
+                    is_liked = p_code in my_likes_set
+                    heart_icon = "❤️" if is_liked else "🤍"
+                    # Button key must be unique per item
+                    if st.button(f"{heart_icon} {likes_num}", key=f"like_{p_code}"):
+                         am.toggle_like(st.session_state['user']['user_id'], p_code)
+                         st.rerun()
+                else:
+                     if st.button(f"🤍 {likes_num}", key=f"like_{p_code}"):
+                         st.toast(T['login_required'], icon="🔒")
             
-            st.markdown('</div>', unsafe_allow_html=True) # End opacity div
+            # st.markdown('</div>', unsafe_allow_html=True) # End opacity div -> MOVED BELOW
+            # Wait, the opacity div started at line 718. It must close AFTER the detail expander? 
+            # Original code closed it at line 852, BEFORE expander (line 855).
+            # So I should close it here.
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # Detail Expander
             with st.expander(T['detail_btn']):
