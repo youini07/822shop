@@ -137,11 +137,43 @@ st.markdown("""
         letter-spacing: 1px;
     }
     
-    /* Expander Customization */
+    /* Expander Customization (Detail & Buy) */
     .streamlit-expanderHeader {
+        background-color: #ffffff;
+        border: 1px solid #dcd8d0;
+        border-radius: 4px;
         font-family: 'Prompt', sans-serif;
         font-size: 0.95em;
-        color: #555;
+        font-weight: 600;
+        color: #1E3A8A; /* Navy Text */
+        margin-top: 10px;
+    }
+    .streamlit-expanderHeader:hover {
+        color: #d4af37; /* Gold on hover */
+        border-color: #d4af37;
+    }
+    
+    /* Expander Content */
+    .streamlit-expanderContent {
+        background-color: #ffffff;
+        border: 1px solid #eee;
+        border-top: none;
+        padding: 15px;
+        color: #333;
+        font-size: 0.9em;
+    }
+
+    /* General Button Styling (Heart, etc) */
+    .stButton button {
+        background-color: #ffffff;
+        border: 1px solid #dcd8d0;
+        color: #333;
+        font-family: 'Prompt', sans-serif;
+        transition: all 0.2s;
+    }
+    .stButton button:hover {
+        border-color: #1E3A8A;
+        color: #1E3A8A;
     }
     
     /* Sidebar Specific Styling */
