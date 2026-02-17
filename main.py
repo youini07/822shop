@@ -880,7 +880,8 @@ for i in range(0, items_per_page, 3):
 
 # --- Pagination Controls ---
 if total_pages > 1:
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Reduced spacing: remove <br> and user smaller margin
+    st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
     # st.divider() # Removed as requested
     
     # Center Pagination
