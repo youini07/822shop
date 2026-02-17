@@ -884,32 +884,58 @@ if total_pages > 1:
     st.divider()
     
     # Center Pagination
-    p_col1, p_col2, p_col3 = st.columns([1, 3, 1])
-    with p_col2:
-        st.markdown(f"<div style='text-align: center;'>Page {st.session_state.page} / {total_pages}</div>", unsafe_allow_html=True)
+    # Use columns to center the controls
+    # Layout: [Prev Button] [Radio Buttons] [Next Button]
+    
+    # Calculate visible page range (1-10, 11-20, etc.)
+    current_page = st.session_state.page
+    chunk_size = 10
+    start_page = ((current_page - 1) // chunk_size) * chunk_size + 1
+    end_page = min(start_page + chunk_size - 1, total_pages)
+    
+    page_options = list(range(start_page, end_page + 1))
+    
+    # Check bounds for navigation
+    has_prev = start_page > 1
+    has_next = end_page < total_pages
+    
+    # Layout columns: [Prev (1)] [Pages (8)] [Next (1)] - Adjust ratio as needed
+    c1, c2, c3 = st.columns([1, 8, 1])
+    
+    # Previous Chunk
+    with c1:
+        if has_prev:
+            if st.button("◀", key="prev_chunk"):
+                st.session_state.page = start_page - 1 # Go to last page of prev chunk
+                st.rerun()
+
+    # Page Numbers (Radio)
+    with c2:
+        # We need a key that changes with the chunk to avoid index errors if range sizes differ
+        # OR we just handle the index carefully. 
+        # Better to ensure current page is in options.
         
-        # Horizontal Radio Button for Pagination
-        # Generating list of pages. If too many, we might need a smarter widget,
-        # but for now standard range is fine based on user request.
-        
-        # Callback to update page immediately
-        def on_page_change():
-            # We don't need to do anything, the return value update handles it next rerun?
-            # Actually st.radio key binding updates session state.
-            pass
-            
-        # We use a key that is NOT 'page' to avoid conflict if we used 'page' elsewhere (we did in session state)
-        # We'll sync them.
+        # If current page is NOT in the visible options (which shouldn't happen by logic above), fix it
+        # Logic ensures current_page is always within [start_page, end_page]
         
         selected_p = st.radio(
             "Go to page:", 
-            options=range(1, total_pages + 1),
-            index=st.session_state.page - 1,
+            options=page_options,
+            index=page_options.index(current_page) if current_page in page_options else 0,
             horizontal=True,
             label_visibility="collapsed",
-            key="pagination_radio"
+            key=f"pagination_radio_{start_page}" # Unique key per chunk to force reset options
         )
         
         if selected_p != st.session_state.page:
             st.session_state.page = selected_p
             st.rerun()
+
+    # Next Chunk
+    with c3:
+        if has_next:
+            if st.button("▶", key="next_chunk"):
+                st.session_state.page = end_page + 1 # Go to first page of next chunk
+                st.rerun()
+             
+    st.markdown(f"<div style='text-align: center; color: #666; margin-top: 5px;'>Page {st.session_state.page} / {total_pages}</div>", unsafe_allow_html=True)
