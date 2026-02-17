@@ -912,15 +912,13 @@ if total_pages > 1:
             align-items: center !important;
             width: 100% !important;
         }
-        /* Target the radio group specifically - using descendant selector */
+        /* Target the radio group specifically */
         div[data-testid="stRadio"] div[role="radiogroup"] {
             display: flex !important;
-            justify-content: flex-end !important; /* Move contents to right */
+            justify-content: flex-end !important;
             align-items: center !important;
             flex-wrap: nowrap !important;
-            margin-right: 0 !important; /* Ensure no right margin pushes it back */
-            margin-left: auto !important; /* Push to right */
-            width: fit-content !important; 
+            width: fit-content !important;
         }
         /* Mobile Optimization: Hide Radio Circles */
         div[data-testid="stRadio"] label > div:first-child {
@@ -951,14 +949,19 @@ if total_pages > 1:
     except ValueError:
         current_index = 0 # Fallback, though logic guarantees presence
         
-    selected_p = st.radio(
-        "Go to page:", 
-        options=page_options,
-        index=current_index,
-        horizontal=True,
-        label_visibility="collapsed",
-        key=f"pagination_unified_{start_page}" # Unique key per chunk
-    )
+    # Use columns to force right alignment structurally
+    # [Spacer (80%)] [Pagination (20%)] - Adjust ratio as needed
+    padding_col, pagination_col = st.columns([8, 3])
+    
+    with pagination_col:
+        selected_p = st.radio(
+            "Go to page:", 
+            options=page_options,
+            index=current_index,
+            horizontal=True,
+            label_visibility="collapsed",
+            key=f"pagination_unified_{start_page}" # Unique key per chunk
+        )
     
     # Handle Selection Logic
     if selected_p == "◀":
