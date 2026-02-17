@@ -153,7 +153,7 @@ if 'lang' not in st.session_state:
 lang_dict = {
     'TH': {
         'title': "ร้านเสื้อผ้าวินเทจคัดเกรด (822 Shop)",
-        'filter': "🔍 ตัวกรอง (Filter)",
+        'filter': "ตัวกรอง (Filter)", # Removed icon
         'search': "Search",
         'search_placeholder': "Ex : Code or Name",
         'brand': "แบรนด์",
@@ -164,13 +164,13 @@ lang_dict = {
         'sort': "เรียงตาม",
         'sort_options': ["ล่าสุด (Newest)", "ราคา: ต่ำไปสูง (Low-High)", "ราคา: สูงไปต่ำ (High-Low)", "ชื่อ (Name)"],
         'total_items': "แสดง {current} จาก {total} รายการ",
+        'total_simple': "ทั้งหมด {total} รายการ", # New simple count
         'page': "หน้า",
         'page_caption': "หน้า {current} จาก {total}",
         'sold_out': "🚫 สินค้าหมด (Sold Out)",
         'on_sale': "✅ มีสินค้า (In Stock)",
         'no_image': "📷 ไม่มีรูปภาพ",
         'detail_btn': "ดูรายละเอียด & สั่งซื้อ",
-        'desc_title': "**รายละเอียดสินค้า**",
         'desc_title': "**รายละเอียดสินค้า**",
         'date_title': "📅 วันที่ลงขาย",
         'arrival_title': "วันที่คาดว่าจะมาถึง",
@@ -188,7 +188,7 @@ lang_dict = {
     },
     'EN': {
         'title': "Curated Vintage Clothing Shop",
-        'filter': "🔍 Filter",
+        'filter': "Filter", # Removed icon
         'search': "Search",
         'search_placeholder': "Ex : Code or Name",
         'brand': "Brand",
@@ -199,13 +199,13 @@ lang_dict = {
         'sort': "Sort By",
         'sort_options': ["Newest", "Price: Low to High", "Price: High to Low", "Name"],
         'total_items': "Showing {current} of {total} items",
+        'total_simple': "Total {total} items", # New simple count
         'page': "Page",
         'page_caption': "Page {current} of {total}",
         'sold_out': "🚫 Sold Out",
         'on_sale': "✅ On Sale",
         'no_image': "📷 No Image",
         'detail_btn': "Details & Buy",
-        'desc_title': "**Description**",
         'desc_title': "**Description**",
         'date_title': "📅 Date Added",
         'arrival_title': "ETA",
@@ -223,7 +223,7 @@ lang_dict = {
     },
     'KR': {
         'title': "엄선된 구제 의류를 만나보세요.",
-        'filter': "🔍 필터",
+        'filter': "필터", # Removed icon
         'search': "검색",
         'search_placeholder': "예 : Code or Name",
         'brand': "브랜드",
@@ -234,13 +234,13 @@ lang_dict = {
         'sort': "정렬 기준",
         'sort_options': ["최신순", "가격 낮은순", "가격 높은순", "이름순"],
         'total_items': "총 {total}개의 상품 중 {current}개를 보여줍니다.",
+        'total_simple': "총 {total}개 상품", # New simple count
         'page': "📄 페이지 이동",
         'page_caption': "총 {total} 페이지 중 {current} 페이지",
         'sold_out': "🚫 품절 (Sold Out)",
         'on_sale': "✅ 판매중 (On Sale)",
         'no_image': "📷 이미지 없음",
         'detail_btn': "상세 정보 및 구매 (Buy Now)",
-        'desc_title': "**제품 설명**",
         'desc_title': "**제품 설명**",
         'date_title': "📅 등록일",
         'arrival_title': "도착예정일",
@@ -259,7 +259,7 @@ lang_dict = {
 }
 
 # Language Toggle (Sidebar Top)
-st.sidebar.markdown("### 🌐 Language")
+st.sidebar.markdown("### Language") # Removed globe icon
 lang_code = st.sidebar.radio("Language", ('TH', 'EN', 'KR'), horizontal=True, label_visibility="collapsed")
 st.session_state.lang = lang_code
 T = lang_dict[lang_code]
@@ -437,14 +437,17 @@ else:
 
 st.sidebar.header(T['filter'])
 
-# [DEBUG / INFO] Source Info & Cache Control
+# [DEBUG / INFO] Status
 if not df.empty:
-    source_name = df.attrs.get('source_sheet', 'Unknown')
-    st.sidebar.info(f"Loaded from: **{source_name}** ({len(df)} rows)")
+    # Removed "Loaded from..." info and Reload button as requested
+    # Added simple total count
+    count_text = T['total_simple'].format(total=len(df))
+    st.sidebar.markdown(f"**{count_text}**")
     
-    if st.sidebar.button("🔄 Reload Data (Clear Cache)"):
-        st.cache_data.clear()
-        st.rerun()
+# [Moved] Filter by My Wishlist (If Logged In) - Moved ABOVE search
+if st.session_state['user']:
+    show_my_wishlist = st.sidebar.checkbox(T['my_wishlist'], value=False)
+    # The actual filtering logic applies to filtered_df later, but we capture the flag here
 
 # 1. Search
 search_query = st.sidebar.text_input(T['search'], placeholder=T['search_placeholder'])
@@ -520,9 +523,9 @@ if show_arrived_only:
         mask_has_arrival = filtered_df['arrival_date'].apply(has_arrival_info)
         filtered_df = filtered_df[~mask_has_arrival]
 
-# Filter by My Wishlist (If Logged In)
+# Filter by My Wishlist (Logic updated to use the checkbox defined earlier)
 if st.session_state['user']:
-    show_my_wishlist = st.sidebar.checkbox(T['my_wishlist'], value=False)
+    # show_my_wishlist is now defined above
     if show_my_wishlist:
         my_likes_ids = am.get_user_likes(st.session_state['user']['user_id'])
         if 'code' in filtered_df.columns:
