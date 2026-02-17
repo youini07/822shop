@@ -904,19 +904,21 @@ if total_pages > 1:
     # [CSS] Unified Styling for Pagination (Numbers & Arrows)
     st.markdown("""
     <style>
-        /* Target the Radio Widget Container to ensure it takes full width and centers content */
+        /* Center the Radio Widget Container */
         div[data-testid="stRadio"] {
-            width: 100% !important;
             display: flex !important;
             justify-content: center !important;
             align-items: center !important;
+            width: 100% !important;
         }
-        div[data-testid="stRadio"] > div[role="radiogroup"] {
-            justify-content: center !important;
-            flex-wrap: nowrap !important; /* Prevent wrapping */
-            gap: 2px; /* Small gap between items */
-            width: auto !important;
+        /* Target the radio group specifically - using descendant selector in case of intermediate divs */
+        div[data-testid="stRadio"] div[role="radiogroup"] {
             display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+            margin: 0 auto !important; /* Force center margin */
+            width: fit-content !important; /* Shrink to fit content so margin:auto works */
         }
         /* Mobile Optimization: Hide Radio Circles */
         div[data-testid="stRadio"] label > div:first-child {
