@@ -285,7 +285,7 @@ if os.path.exists("822logo_final_v2.png"):
             background-color: #ffffff; /* White background for the banner area */
             border-bottom: 1px solid #eee; /* Subtle separation */
         ">
-            <img src="data:image/png;base64,{img_base64}" style="width: auto; max-width: 100%;">
+            <img src="data:image/png;base64,{img_base64}" style="width: auto; max-width: 500px;">
         </div>
         """,
         unsafe_allow_html=True
