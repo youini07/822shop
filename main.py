@@ -899,8 +899,17 @@ if total_pages > 1:
     has_prev = start_page > 1
     has_next = end_page < total_pages
     
+    # [CSS] Force Center Alignment for Radio Group
+    st.markdown("""
+    <style>
+        div[data-testid="stRadio"] > div {
+            justify-content: center;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Layout columns: [Prev (1)] [Pages (8)] [Next (1)] - Adjust ratio as needed
-    c1, c2, c3 = st.columns([1, 8, 1])
+    c1, c2, c3 = st.columns([1, 10, 1])
     
     # Previous Chunk
     with c1:
