@@ -33,6 +33,13 @@ st.markdown("""
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#ffffff">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<!-- Google Fonts: Montserrat, Kanit, Inter, Prompt -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Kanit:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Pretendard (JSDelivr) -->
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<!-- Gmarket Sans (CDN) -->
+<link href="https://webfontworld.github.io/gmarket/GmarketSans.css" rel="stylesheet">
+
 <style>
     /* Hide Streamlit Header & Footer for App-like feel */
     /* [MODIFIED] Do NOT hide header, we need hamburger menu for sidebar */
@@ -44,10 +51,20 @@ st.markdown("""
     
     /* Global Font & Touch adjustments */
     body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-family: 'Inter', 'Pretendard', 'Prompt', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         -webkit-user-select: none; /* Disable text selection for app-feel */
         user-select: none;
         -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Headings (Titles): Gmarket Sans (KR) + Montserrat (EN) + Kanit (TH) */
+    h1, h2, h3, h4, h5, h6, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        font-family: 'Montserrat', 'GmarketSans', 'Kanit', sans-serif !important;
+    }
+    
+    /* Specific overrides for Product Titles if needed */
+    .product-title {
+        font-family: 'GmarketSans', 'Montserrat', 'Kanit', sans-serif !important;
     }
     
     /* Improve button touch targets */
