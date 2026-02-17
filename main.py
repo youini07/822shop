@@ -270,9 +270,9 @@ def get_base64_of_bin_file(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-if os.path.exists("822logo_final.png"):
+if os.path.exists("822logo_final_v2.png"):
     # Center Logo: Use HTML/CSS with Base64 to guarantee centering on mobile
-    img_base64 = get_base64_of_bin_file("822logo_final.png")
+    img_base64 = get_base64_of_bin_file("822logo_final_v2.png")
     st.markdown(
         f"""
         <div style="
@@ -290,7 +290,7 @@ if os.path.exists("822logo_final.png"):
         """,
         unsafe_allow_html=True
     )
-elif os.path.exists("822logo.png"):
+elif os.path.exists("822logo_final.png"):
     # Fallback to cleaned version
     img_base64 = get_base64_of_bin_file("822logo_clean.png")
     st.markdown(
