@@ -888,83 +888,77 @@ if total_pages > 1:
     # Layout: [Prev Button] [Radio Buttons] [Next Button]
     
     # Calculate visible page range (1-8, 9-16, etc.)
+    # Calculate visible page range (1-8, 9-16, etc.)
     current_page = st.session_state.page
     chunk_size = 8
     start_page = ((current_page - 1) // chunk_size) * chunk_size + 1
     end_page = min(start_page + chunk_size - 1, total_pages)
     
-    page_options = list(range(start_page, end_page + 1))
+    # Construct options with navigation arrows
+    page_options = []
+    if start_page > 1:
+        page_options.append("◀")
     
-    # Check bounds for navigation
-    has_prev = start_page > 1
-    has_next = end_page < total_pages
+    page_options.extend(range(start_page, end_page + 1))
     
-    # [CSS] Force Center Alignment & No-Wrap for Radio Group
+    if end_page < total_pages:
+        page_options.append("▶")
+    
+    # [CSS] Unified Styling for Pagination (Numbers & Arrows)
     st.markdown("""
     <style>
         div[data-testid="stRadio"] > div {
             justify-content: center;
             flex-wrap: nowrap !important; /* Prevent wrapping */
+            gap: 2px; /* Small gap between items */
         }
-        /* Mobile Optimization: Hide Radio Circles & Style as Text Links */
+        /* Mobile Optimization: Hide Radio Circles */
         div[data-testid="stRadio"] label > div:first-child {
-            display: none !important; /* Hide the circle */
+            display: none !important;
         }
+        /* Style Labels (Numbers and Arrows) */
         div[data-testid="stRadio"] label {
-            margin-right: 5px !important;
+            margin-right: 0px !important;
             padding: 0 5px !important;
             border: none !important;
             background-color: transparent !important;
             cursor: pointer !important;
-            /* Text Styling */
-            /* font-weight: bold; */ /* Optional */
+            min-width: 25px; /* Minimum width for easier clicking */
+            text-align: center;
         }
         div[data-testid="stRadio"] label:hover {
             background-color: transparent !important;
             text-decoration: underline;
+            color: #ff4b4b; /* Highlight color */
         }
     </style>
     """, unsafe_allow_html=True)
     
-    # Layout columns: [Spacer] [Prev] [Pages] [Next] [Spacer]
-    # Ratios: 4 : 1 : 6 : 1 : 4
-    # Reduced middle width for 8 items, buttons closer to center
-    c_spacer_L, c_prev, c_radio, c_next, c_spacer_R = st.columns([4, 1, 6, 1, 4])
+    # Unified Radio Button
+    # We need to determine the index of the CURRENT page in our mixed list
+    try:
+        current_index = page_options.index(current_page)
+    except ValueError:
+        current_index = 0 # Fallback, though logic guarantees presence
+        
+    selected_p = st.radio(
+        "Go to page:", 
+        options=page_options,
+        index=current_index,
+        horizontal=True,
+        label_visibility="collapsed",
+        key=f"pagination_unified_{start_page}" # Unique key per chunk
+    )
     
-    # Previous Chunk
-    with c_prev:
-        if has_prev:
-            if st.button("◀", key="prev_chunk"):
-                st.session_state.page = start_page - 1 # Go to last page of prev chunk
-                st.rerun()
-
-    # Page Numbers (Radio)
-    with c_radio:
-        # We need a key that changes with the chunk to avoid index errors if range sizes differ
-        # OR we just handle the index carefully. 
-        # Better to ensure current page is in options.
-        
-        # If current page is NOT in the visible options (which shouldn't happen by logic above), fix it
-        # Logic ensures current_page is always within [start_page, end_page]
-        
-        selected_p = st.radio(
-            "Go to page:", 
-            options=page_options,
-            index=page_options.index(current_page) if current_page in page_options else 0,
-            horizontal=True,
-            label_visibility="collapsed",
-            key=f"pagination_radio_{start_page}" # Unique key per chunk to force reset options
-        )
-        
-        if selected_p != st.session_state.page:
-            st.session_state.page = selected_p
-            st.rerun()
-
-    # Next Chunk
-    with c_next:
-        if has_next:
-            if st.button("▶", key="next_chunk"):
-                st.session_state.page = end_page + 1 # Go to first page of next chunk
-                st.rerun()
+    # Handle Selection Logic
+    if selected_p == "◀":
+        st.session_state.page = start_page - 1
+        st.rerun()
+    elif selected_p == "▶":
+        st.session_state.page = end_page + 1
+        st.rerun()
+    elif selected_p != st.session_state.page:
+        st.session_state.page = selected_p
+        st.rerun()
              
     st.markdown(f"<div style='text-align: center; color: #666; margin-top: 5px;'>Page {st.session_state.page} / {total_pages}</div>", unsafe_allow_html=True)
