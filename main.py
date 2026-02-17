@@ -887,9 +887,9 @@ if total_pages > 1:
     # Use columns to center the controls
     # Layout: [Prev Button] [Radio Buttons] [Next Button]
     
-    # Calculate visible page range (1-10, 11-20, etc.)
+    # Calculate visible page range (1-8, 9-16, etc.)
     current_page = st.session_state.page
-    chunk_size = 10
+    chunk_size = 8
     start_page = ((current_page - 1) // chunk_size) * chunk_size + 1
     end_page = min(start_page + chunk_size - 1, total_pages)
     
@@ -927,9 +927,9 @@ if total_pages > 1:
     """, unsafe_allow_html=True)
     
     # Layout columns: [Spacer] [Prev] [Pages] [Next] [Spacer]
-    # Ratios: 4 : 1 : 8 : 1 : 4
-    # Intermediate ratio to balance gap size and wrapping prevention
-    c_spacer_L, c_prev, c_radio, c_next, c_spacer_R = st.columns([4, 1, 8, 1, 4])
+    # Ratios: 4 : 1 : 6 : 1 : 4
+    # Reduced middle width for 8 items, buttons closer to center
+    c_spacer_L, c_prev, c_radio, c_next, c_spacer_R = st.columns([4, 1, 6, 1, 4])
     
     # Previous Chunk
     with c_prev:
