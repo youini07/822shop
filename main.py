@@ -952,7 +952,8 @@ if total_pages > 1:
         
     # Use 3 columns to center alignment structurally as requested
     # [Left Spacer] [Pagination (Center)] [Right Spacer]
-    col_left, col_center, col_right = st.columns([1, 2, 1])
+    # Using [1, 1, 1] for perfect symmetry
+    col_left, col_center, col_right = st.columns([1, 1, 1])
     
     with col_center:
         selected_p = st.radio(
