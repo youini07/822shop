@@ -881,13 +881,10 @@ for i in range(0, items_per_page, 3):
 # --- Pagination Controls ---
 if total_pages > 1:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.divider()
+    # st.divider() # Removed as requested
     
     # Center Pagination
-    # Use columns to center the controls
-    # Layout: [Prev Button] [Radio Buttons] [Next Button]
     
-    # Calculate visible page range (1-8, 9-16, etc.)
     # Calculate visible page range (1-8, 9-16, etc.)
     current_page = st.session_state.page
     chunk_size = 8
@@ -907,11 +904,19 @@ if total_pages > 1:
     # [CSS] Unified Styling for Pagination (Numbers & Arrows)
     st.markdown("""
     <style>
+        /* Target the Radio Widget Container to ensure it takes full width and centers content */
+        div[data-testid="stRadio"] {
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+        }
         div[data-testid="stRadio"] > div[role="radiogroup"] {
             justify-content: center !important;
             flex-wrap: nowrap !important; /* Prevent wrapping */
             gap: 2px; /* Small gap between items */
-            width: 100% !important; /* Ensure full width for centering */
+            width: auto !important;
+            display: flex !important;
         }
         /* Mobile Optimization: Hide Radio Circles */
         div[data-testid="stRadio"] label > div:first-child {
