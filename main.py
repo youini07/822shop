@@ -282,10 +282,10 @@ if os.path.exists("822logo_final_v2.png"):
             width: 100%; 
             padding: 0px 0; 
             margin-bottom: 10px; 
-            background-color: #ffffff; /* White background for the banner area */
-            border-bottom: 1px solid #eee; /* Subtle separation */
+            /* background-color removed for transparency */
+            border-bottom: 1px solid #333; /* Darker separation or remove? Keeping meaningful separator for now, but making it dark to blend or just remove border if desired. Let's make it subtle dark. */
         ">
-            <img src="data:image/png;base64,{img_base64}" style="width: auto; max-width: 500px;">
+            <img src="data:image/png;base64,{img_base64}" style="width: auto; max-width: 200px;">
         </div>
         """,
         unsafe_allow_html=True
