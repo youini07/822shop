@@ -910,9 +910,9 @@ if total_pages > 1:
     """, unsafe_allow_html=True)
     
     # Layout columns: [Spacer] [Prev] [Pages] [Next] [Spacer]
-    # Ratios: 1 : 1 : 10 : 1 : 1
-    # Give maximum space to the pages (Radio) to prevent wrapping
-    c_spacer_L, c_prev, c_radio, c_next, c_spacer_R = st.columns([1, 1, 10, 1, 1])
+    # Ratios: 5 : 1 : 6 : 1 : 5
+    # Tightly center the controls by using large side spacers
+    c_spacer_L, c_prev, c_radio, c_next, c_spacer_R = st.columns([5, 1, 6, 1, 5])
     
     # Previous Chunk
     with c_prev:
