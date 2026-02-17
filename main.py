@@ -559,7 +559,12 @@ selected_upper = st.sidebar.multiselect(T['upper_category'], all_upper)
 # 3. Category Filter
 # Sort by count (descending)
 if 'category' in df.columns:
-    cat_counts = df['category'].value_counts()
+    if selected_upper and 'upper_category' in df.columns:
+        filtered_sub = df[df['upper_category'].isin(selected_upper)]
+        cat_counts = filtered_sub['category'].value_counts()
+    else:
+        cat_counts = df['category'].value_counts()
+        
     all_categories = cat_counts.index.tolist()
 else:
     all_categories = []
