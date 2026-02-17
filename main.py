@@ -899,19 +899,20 @@ if total_pages > 1:
     has_prev = start_page > 1
     has_next = end_page < total_pages
     
-    # [CSS] Force Center Alignment for Radio Group
+    # [CSS] Force Center Alignment & No-Wrap for Radio Group
     st.markdown("""
     <style>
         div[data-testid="stRadio"] > div {
             justify-content: center;
+            flex-wrap: nowrap !important; /* Prevent wrapping to second line */
         }
     </style>
     """, unsafe_allow_html=True)
     
     # Layout columns: [Spacer] [Prev] [Pages] [Next] [Spacer]
-    # Ratios: 2 : 1 : 6 : 1 : 2 (Total 12)
-    # This squeezes the Prev/Next buttons closer to the Radio buttons
-    c_spacer_L, c_prev, c_radio, c_next, c_spacer_R = st.columns([2, 1, 6, 1, 2])
+    # Ratios: 1 : 1 : 10 : 1 : 1
+    # Give maximum space to the pages (Radio) to prevent wrapping
+    c_spacer_L, c_prev, c_radio, c_next, c_spacer_R = st.columns([1, 1, 10, 1, 1])
     
     # Previous Chunk
     with c_prev:
