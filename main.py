@@ -143,6 +143,18 @@ st.markdown("""
         font-size: 0.95em;
         color: #555;
     }
+    
+    /* Sidebar Specific Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #EBE7E0; /* Ensure matches config */
+        border-right: 1px solid #dcd8d0;
+    }
+    section[data-testid="stSidebar"] h1, 
+    section[data-testid="stSidebar"] h2, 
+    section[data-testid="stSidebar"] h3 {
+        color: #1E3A8A !important; /* Navy headers in sidebar */
+        font-family: 'Playfair Display', serif !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 

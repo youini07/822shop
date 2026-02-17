@@ -1,6 +1,12 @@
 [theme]
 base="light"
-primaryColor="#000000"
-backgroundColor="#ffffff"
-secondaryBackgroundColor="#f0f2f6"
-textColor="#000000"
+primaryColor="#1E3A8A"
+backgroundColor="#FAF9F6"
+secondaryBackgroundColor="#EBE7E0"
+textColor="#333333"
+font="sans serif"
+
+[server]
+runOnSave = true
+headless = true
+port = 8501
