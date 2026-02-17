@@ -856,36 +856,37 @@ for i in range(0, items_per_page, 3):
             st.markdown(f"<div class='product-title'>[{brand}] {name}</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='product-price'>{price_display}</div>", unsafe_allow_html=True)
     
-            # [NEW LAYOUT] HTML Footer for Mobile Responsiveness (Flexbox)
-            # Uses Anchor ID to prevent scroll jump: #p_{code}
+            # [Restored] st.button for "No Refresh" (Soft Rerun) UX
+            # Mobile Layout: Use columns with ratio favoring text
+            # To minimize wrapping, we use [7, 3] or [3, 1]
+            m_col1, m_col2 = st.columns([7, 3])
             
-            # Prepare Data
-            p_code = str(code)
-            likes_num = all_counts.get(p_code, 0)
+            with m_col1:
+                # Text Info
+                # Use small font and nowrap to fit as much as possible
+                st.markdown(f"""
+                <div style="font-size: 13px; color: #666; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    Code : {code} | {T['size']} : {size} | Cond : {condition}
+                </div>
+                """, unsafe_allow_html=True)
+                
+            with m_col2:
+                # Wishlist Button
+                p_code = str(code)
+                likes_num = all_counts.get(p_code, 0)
+                
+                # Determine button label
+                if st.session_state.get('user'):
+                    is_liked = p_code in my_likes_set
+                    heart_icon = "❤️" if is_liked else "🤍"
+                    # Unique key for button
+                    if st.button(f"{heart_icon} {likes_num}", key=f"like_{p_code}", help="Add to Wishlist"):
+                         result = am.toggle_like(st.session_state['user']['user_id'], p_code)
+                         st.rerun()
+                else:
+                     if st.button(f"🤍 {likes_num}", key=f"like_{p_code}"):
+                         st.toast(T['login_required'], icon="🔒")
             
-            # Like Link Logic
-            if st.session_state['user']:
-                is_liked = p_code in my_likes_set
-                heart_icon = "❤️" if is_liked else "🤍"
-                # Link triggers query param reload
-                # target="_self" is crucial.
-                like_btn_html = f"""<a href="?toggle_like={p_code}#p_{p_code}" target="_self" style="text-decoration:none; color:inherit; font-size:16px;">{heart_icon} {likes_num}</a>"""
-            else:
-                 # Login Required
-                 like_btn_html = f"""<a href="?toggle_like={p_code}#p_{p_code}" target="_self" style="text-decoration:none; color:inherit; font-size:16px;">🤍 {likes_num}</a>"""
-
-            # Render HTML Footer
-            # Use flex-wrap: nowrap to Force single line
-            # IMPORTANT: No indentation in the HTML string to avoid markdown code block interpretation
-            st.markdown(f"""<div id="p_{p_code}" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: nowrap;">
-    <div style="font-size: 14px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px;">
-        Code : {code} | {T['size']} : {size} | Condition : {condition}
-    </div>
-    <div style="flex-shrink: 0;">
-        {like_btn_html}
-    </div>
-</div>""", unsafe_allow_html=True)
-
             st.markdown('</div>', unsafe_allow_html=True) # End opacity div
             
             # Detail Expander
