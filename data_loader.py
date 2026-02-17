@@ -78,7 +78,8 @@ def load_data():
             '이미지': 'image_file_id',
             '상태': 'stock',
             '등록일': 'updated_at',
-            '도착예정일': 'arrival_date', 'eta': 'arrival_date', 'ETA': 'arrival_date'
+            '도착예정일': 'arrival_date', 'eta': 'arrival_date', 'ETA': 'arrival_date',
+            '실측사이즈': 'measured_size'
         }
         
         # Normalize headers (strip whitespace)

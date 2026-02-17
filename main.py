@@ -922,6 +922,15 @@ for i in range(0, items_per_page, 3):
                     Code : {code} | {T['size']} : {size} | Cond : {condition}
                 </div>
                 """, unsafe_allow_html=True)
+
+                # [NEW] Measured Size
+                measured = row.get('measured_size', '-')
+                if measured and str(measured).lower() != 'nan' and str(measured).strip() != '':
+                     st.markdown(f"""
+                        <div style="font-size: 13px; color: #333; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+                            {T['measured_size']} : {measured}
+                        </div>
+                        """, unsafe_allow_html=True)
                 
             with m_col2:
                 # Wishlist Button
