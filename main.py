@@ -283,9 +283,9 @@ if os.path.exists("822logo_final_v2.png"):
             padding: 0px 0; 
             margin-bottom: 10px; 
             /* background-color removed for transparency */
-            border-bottom: 1px solid #333; /* Darker separation or remove? Keeping meaningful separator for now, but making it dark to blend or just remove border if desired. Let's make it subtle dark. */
+            border-bottom: none;
         ">
-            <img src="data:image/png;base64,{img_base64}" style="width: auto; max-width: 200px;">
+            <img src="data:image/png;base64,{img_base64}" style="width: auto; max-width: 300px;">
         </div>
         """,
         unsafe_allow_html=True
