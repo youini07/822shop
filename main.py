@@ -930,7 +930,7 @@ for i in range(0, items_per_page, 3):
                 measured = row.get('measured_size', '-')
                 if measured and str(measured).lower() != 'nan' and str(measured).strip() != '':
                      st.markdown(f"""
-                        <div style="font-size: 13px; color: #333; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+                        <div style="font-size: 15px; color: #333; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold;">
                             {T['measured_size']} : {measured}
                         </div>
                         """, unsafe_allow_html=True)
