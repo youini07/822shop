@@ -908,18 +908,20 @@ if total_pages > 1:
     </style>
     """, unsafe_allow_html=True)
     
-    # Layout columns: [Prev (1)] [Pages (8)] [Next (1)] - Adjust ratio as needed
-    c1, c2, c3 = st.columns([1, 10, 1])
+    # Layout columns: [Spacer] [Prev] [Pages] [Next] [Spacer]
+    # Ratios: 2 : 1 : 6 : 1 : 2 (Total 12)
+    # This squeezes the Prev/Next buttons closer to the Radio buttons
+    c_spacer_L, c_prev, c_radio, c_next, c_spacer_R = st.columns([2, 1, 6, 1, 2])
     
     # Previous Chunk
-    with c1:
+    with c_prev:
         if has_prev:
             if st.button("◀", key="prev_chunk"):
                 st.session_state.page = start_page - 1 # Go to last page of prev chunk
                 st.rerun()
 
     # Page Numbers (Radio)
-    with c2:
+    with c_radio:
         # We need a key that changes with the chunk to avoid index errors if range sizes differ
         # OR we just handle the index carefully. 
         # Better to ensure current page is in options.
@@ -941,7 +943,7 @@ if total_pages > 1:
             st.rerun()
 
     # Next Chunk
-    with c3:
+    with c_next:
         if has_next:
             if st.button("▶", key="next_chunk"):
                 st.session_state.page = end_page + 1 # Go to first page of next chunk
