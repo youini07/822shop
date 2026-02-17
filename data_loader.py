@@ -79,6 +79,7 @@ def load_data():
             'cc': 'code',
             '브랜드': 'brand',
             '물품명': 'name',
+            '상위카테고리': 'upper_category', # [NEW] Added mapping
             '카테고리': 'category',
             '사이즈': 'size',
             '컨디션': 'condition',

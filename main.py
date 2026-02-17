@@ -157,6 +157,7 @@ lang_dict = {
         'search': "Search",
         'search_placeholder': "Ex : Code or Name",
         'brand': "แบรนด์",
+        'upper_category': "หมวดหมู่หลัก (Upper Category)", # [NEW]
         'category': "หมวดหมู่",
         'size': "ขนาด (Size)",
         'price_range': "ช่วงราคา (บาท)",
@@ -192,6 +193,7 @@ lang_dict = {
         'search': "Search",
         'search_placeholder': "Ex : Code or Name",
         'brand': "Brand",
+        'upper_category': "Upper Category", # [NEW]
         'category': "Category",
         'size': "Size",
         'price_range': "Price Range (THB)",
@@ -227,6 +229,7 @@ lang_dict = {
         'search': "검색",
         'search_placeholder': "예 : Code or Name",
         'brand': "브랜드",
+        'upper_category': "상위 카테고리", # [NEW]
         'category': "카테고리",
         'size': "사이즈",
         'price_range': "가격 범위 (KRW)",
@@ -542,6 +545,10 @@ if search_query:
 all_brands = sorted([str(x) for x in df['brand'].unique()]) if 'brand' in df.columns else []
 selected_brands = st.sidebar.multiselect(T['brand'], all_brands)
 
+# [NEW] 2.5 Upper Category Filter
+all_upper = sorted([str(x) for x in df['upper_category'].unique()]) if 'upper_category' in df.columns else []
+selected_upper = st.sidebar.multiselect(T['upper_category'], all_upper)
+
 # 3. Category Filter
 all_categories = sorted([str(x) for x in df['category'].unique()]) if 'category' in df.columns else []
 selected_categories = st.sidebar.multiselect(T['category'], all_categories)
@@ -636,7 +643,8 @@ if search_query:
     
     if 'code' in filtered_df.columns:
         search_col_matches = search_col_matches | filtered_df['code'].astype(str).str.contains(search_query, case=False, na=False)
-    elif 'id' in filtered_df.columns: # fallback guess
+    
+    if 'id' in filtered_df.columns:
         search_col_matches = search_col_matches | filtered_df['id'].astype(str).str.contains(search_query, case=False, na=False)
         
     filtered_df = filtered_df[search_col_matches]
@@ -644,6 +652,11 @@ if search_query:
 # Filter: Brand
 if selected_brands:
     filtered_df = filtered_df[filtered_df['brand'].isin(selected_brands)]
+
+# [NEW] Filter by Upper Category
+if selected_upper:
+    if 'upper_category' in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df['upper_category'].isin(selected_upper)]
 
 # Filter: Category
 if selected_categories:
