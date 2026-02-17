@@ -904,8 +904,26 @@ if total_pages > 1:
     <style>
         div[data-testid="stRadio"] > div {
             justify-content: center;
-            flex-wrap: nowrap !important; /* Prevent wrapping to second line */
+            flex-wrap: nowrap !important; /* Prevent wrapping */
         }
+        /* Mobile Optimization: Hide Radio Circles & Style as Buttons */
+        div[data-testid="stRadio"] label > div:first-child {
+            display: none !important; /* Hide the circle */
+        }
+        div[data-testid="stRadio"] label {
+            margin-right: 2px !important;
+            padding: 4px 10px !important;
+            border: 1px solid #ddd !important;
+            border-radius: 5px !important;
+            cursor: pointer !important;
+            background-color: #f9f9f9;
+        }
+        div[data-testid="stRadio"] label:hover {
+            background-color: #eee;
+        }
+        /* Highlight selected (This is tricky in pure CSS without :has, but we rely on Streamlit's internal state styling or just keeping it simple. 
+           Actually, Streamlit changes the inner text bold/color. We can try to target the checked state if possible, but mostly just removing the circle helps the layout.)
+        */
     </style>
     """, unsafe_allow_html=True)
     
