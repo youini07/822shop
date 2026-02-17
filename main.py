@@ -907,10 +907,11 @@ if total_pages > 1:
     # [CSS] Unified Styling for Pagination (Numbers & Arrows)
     st.markdown("""
     <style>
-        div[data-testid="stRadio"] > div {
-            justify-content: center;
+        div[data-testid="stRadio"] > div[role="radiogroup"] {
+            justify-content: center !important;
             flex-wrap: nowrap !important; /* Prevent wrapping */
             gap: 2px; /* Small gap between items */
+            width: 100% !important; /* Ensure full width for centering */
         }
         /* Mobile Optimization: Hide Radio Circles */
         div[data-testid="stRadio"] label > div:first-child {
