@@ -61,6 +61,11 @@ st.markdown("""
 # --- Custom CSS ---
 st.markdown("""
 <style>
+    /* Reduce top whitespace */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+    }
     .product-card {
         background-color: #ffffff;
         padding: 15px;
