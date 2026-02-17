@@ -371,7 +371,35 @@ if not st.session_state['user']:
 
 # Auth UI in Sidebar
 if st.session_state['user']:
-    st.sidebar.success(f"{T['welcome']}, {st.session_state['user']['name']}님!")
+    # 4. Remove green block effect (Use markdown instead of success)
+    st.sidebar.markdown(f"{T['welcome']}, **{st.session_state['user']['name']}**님!")
+    
+    # 2. Logout as text click (Styled via CSS below or just a clean button)
+    # To make it look like text, we can use a custom style or just a minimal button.
+    # Here we stick to button for functionality but add a class or style if needed.
+    # For now, we'll keep it as a button but we can inject CSS to make sidebar buttons look flat if requested.
+    # User asked for "Text click way". 
+    # We will wrap it in a container and inject CSS *specifically* for this button if possible, 
+    # OR we can assume it's the only button here.
+    
+    # CSS to make the logout button look like a red text link
+    st.sidebar.markdown("""
+        <style>
+            /* Target the logout button in sidebar */
+            div[data-testid="stSidebar"] .stButton > button {
+                background-color: transparent;
+                border: none;
+                color: #ff4b4b; /* Red text */
+                text-decoration: underline;
+                padding: 0;
+            }
+            div[data-testid="stSidebar"] .stButton > button:hover {
+                color: #ff0000;
+                text-decoration: none;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+    
     if st.sidebar.button(T['logout']):
         st.session_state['user'] = None
         # [Logout] Delete Cookie
@@ -435,7 +463,8 @@ else:
                 else:
                     st.error(msg)
 
-st.sidebar.header(T['filter'])
+# 3. Filter text removed
+# st.sidebar.header(T['filter'])
 
 # [DEBUG / INFO] Status
 if not df.empty:
@@ -446,7 +475,11 @@ if not df.empty:
     
 # [Moved] Filter by My Wishlist (If Logged In) - Moved ABOVE search
 if st.session_state['user']:
-    show_my_wishlist = st.sidebar.checkbox(T['my_wishlist'], value=False)
+    # 1. Wishlist Checkbox to the Right
+    # Use columns: [Text] [Checkbox]
+    wc1, wc2 = st.sidebar.columns([3, 1])
+    wc1.markdown(f"**{T['my_wishlist']}**")
+    show_my_wishlist = wc2.checkbox("", value=False, key="wishlist_chk", label_visibility="collapsed")
     # The actual filtering logic applies to filtered_df later, but we capture the flag here
 
 # 1. Search
