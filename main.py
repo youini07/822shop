@@ -547,11 +547,23 @@ all_brands = sorted([str(x) for x in df['brand'].unique()]) if 'brand' in df.col
 selected_brands = st.sidebar.multiselect(T['brand'], all_brands)
 
 # [NEW] 2.5 Upper Category Filter
-all_upper = sorted([str(x) for x in df['upper_category'].unique()]) if 'upper_category' in df.columns else []
+# Sort by count (descending)
+if 'upper_category' in df.columns:
+    upper_counts = df['upper_category'].value_counts()
+    all_upper = upper_counts.index.tolist()
+else:
+    all_upper = []
+    
 selected_upper = st.sidebar.multiselect(T['upper_category'], all_upper)
 
 # 3. Category Filter
-all_categories = sorted([str(x) for x in df['category'].unique()]) if 'category' in df.columns else []
+# Sort by count (descending)
+if 'category' in df.columns:
+    cat_counts = df['category'].value_counts()
+    all_categories = cat_counts.index.tolist()
+else:
+    all_categories = []
+    
 selected_categories = st.sidebar.multiselect(T['category'], all_categories)
 
 # 4. Size Filter
