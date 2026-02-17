@@ -463,8 +463,35 @@ else:
                 else:
                     st.error(msg)
 
-# 3. Filter text removed
-# st.sidebar.header(T['filter'])
+# [Logic] Handle Query Params for Liking (Mobile Fix)
+# We use query params to trigger likes from HTML links to ensure layout control.
+try:
+    # Attempt to get query params (Streamlit 1.30+)
+    q_params = st.query_params
+    if 'toggle_like' in q_params:
+        target_code = q_params['toggle_like']
+        
+        if st.session_state['user']:
+            # Perform Like
+            am.toggle_like(st.session_state['user']['user_id'], target_code)
+            # Notify user nicely (optional, or just rerun)
+            # st.toast(f"Wishlist Updated!", icon="❤️")
+        else:
+            st.toast(T['login_required'], icon="🔒")
+            
+        # Clear param to prevent loop
+        if 'toggle_like' in st.query_params:
+            del st.query_params['toggle_like']
+            
+        # Rerun to refresh state
+        st.rerun()
+except Exception as e:
+    # Fallback or older streamlit version handling could go here
+    pass
+
+st.sidebar.header(T['filter'])
+
+# ... (Previous Code for Sidebar Status / Search) ...
 
 # [DEBUG / INFO] Status
 if not df.empty:
@@ -829,43 +856,55 @@ for i in range(0, items_per_page, 3):
             st.markdown(f"<div class='product-title'>[{brand}] {name}</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='product-price'>{price_display}</div>", unsafe_allow_html=True)
     
-            # [NEW LAYOUT] Code/Size/Condition + Wishlist Button in one row
-            # Column Ratios: [Text (3) | Button (1)]
-            m_col1, m_col2 = st.columns([3, 1])
+            # [NEW LAYOUT] HTML Footer for Mobile Responsiveness (Flexbox)
+            # Uses Anchor ID to prevent scroll jump: #p_{code}
             
-            with m_col1:
-                # Increased font size by 2px (default caption is small, ~12-14px). 
-                # Let's target ~14px-16px and ensure it aligns vertically.
-                # Using <span> or <p> with inline style.
-                # margin-top to align with button
-                st.markdown(f"""
-                <div style="font-size: 14px; color: #666; margin-top: 5px;">
+            # Prepare Data
+            p_code = str(code)
+            likes_num = all_counts.get(p_code, 0)
+            
+            # Like Link Logic
+            if st.session_state['user']:
+                is_liked = p_code in my_likes_set
+                heart_icon = "❤️" if is_liked else "🤍"
+                # Link triggers query param reload
+                # target="_self" is crucial.
+                like_btn_html = f"""
+                <a href="?toggle_like={p_code}#p_{p_code}" target="_self" style="text-decoration:none; color:inherit; font-size:16px;">
+                    {heart_icon} {likes_num}
+                </a>
+                """
+            else:
+                 # Login Required Toast trigger? 
+                 # For HTML, we can't trigger toast easily without JS.
+                 # Just show empty heart and maybe link to top or do nothing.
+                 # Or use a special param ?login_req=1
+                 like_btn_html = f"""
+                 <a href="?toggle_like={p_code}#p_{p_code}" target="_self" style="text-decoration:none; color:inherit; font-size:16px;">
+                    🤍 {likes_num}
+                 </a>
+                 """
+
+            # Render HTML Footer
+            # Use flex-wrap: nowrap to Force single line
+            st.markdown(f"""
+            <div id="p_{p_code}" style="
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                margin-top: 10px;
+                flex-wrap: nowrap;
+            ">
+                <div style="font-size: 14px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px;">
                     Code : {code} | {T['size']} : {size} | Condition : {condition}
                 </div>
-                """, unsafe_allow_html=True)
+                <div style="flex-shrink: 0;">
+                    {like_btn_html}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-            with m_col2:
-                # Wishlist Button (Right Aligned via placement in right col)
-                p_code = str(code)
-                likes_num = all_counts.get(p_code, 0)
-                
-                # Determine button label
-                if st.session_state['user']:
-                    is_liked = p_code in my_likes_set
-                    heart_icon = "❤️" if is_liked else "🤍"
-                    # Button key must be unique per item
-                    if st.button(f"{heart_icon} {likes_num}", key=f"like_{p_code}"):
-                         am.toggle_like(st.session_state['user']['user_id'], p_code)
-                         st.rerun()
-                else:
-                     if st.button(f"🤍 {likes_num}", key=f"like_{p_code}"):
-                         st.toast(T['login_required'], icon="🔒")
-            
-            # st.markdown('</div>', unsafe_allow_html=True) # End opacity div -> MOVED BELOW
-            # Wait, the opacity div started at line 718. It must close AFTER the detail expander? 
-            # Original code closed it at line 852, BEFORE expander (line 855).
-            # So I should close it here.
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True) # End opacity div
             
             # Detail Expander
             with st.expander(T['detail_btn']):
