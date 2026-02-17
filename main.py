@@ -905,19 +905,20 @@ if total_pages > 1:
     # [CSS] Unified Styling for Pagination (Numbers & Arrows)
     st.markdown("""
     <style>
-        /* Right-align the Radio Widget Container */
+        /* Center the Radio Widget Container */
         div[data-testid="stRadio"] {
             display: flex !important;
-            justify-content: flex-end !important; /* Move to right */
+            justify-content: center !important; /* Center alignment */
             align-items: center !important;
             width: 100% !important;
         }
         /* Target the radio group specifically */
         div[data-testid="stRadio"] div[role="radiogroup"] {
             display: flex !important;
-            justify-content: flex-end !important;
+            justify-content: center !important;
             align-items: center !important;
             flex-wrap: nowrap !important;
+            margin: 0 auto !important;
             width: fit-content !important;
         }
         /* Mobile Optimization: Hide Radio Circles */
@@ -949,11 +950,11 @@ if total_pages > 1:
     except ValueError:
         current_index = 0 # Fallback, though logic guarantees presence
         
-    # Use columns to force right alignment structurally
-    # [Spacer (80%)] [Pagination (20%)] - Adjust ratio as needed
-    padding_col, pagination_col = st.columns([8, 3])
+    # Use 3 columns to center alignment structurally as requested
+    # [Left Spacer] [Pagination (Center)] [Right Spacer]
+    col_left, col_center, col_right = st.columns([1, 2, 1])
     
-    with pagination_col:
+    with col_center:
         selected_p = st.radio(
             "Go to page:", 
             options=page_options,
