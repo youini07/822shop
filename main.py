@@ -910,9 +910,9 @@ if total_pages > 1:
     """, unsafe_allow_html=True)
     
     # Layout columns: [Spacer] [Prev] [Pages] [Next] [Spacer]
-    # Ratios: 3 : 1 : 10 : 1 : 3
-    # Give maximum space to the pages (Radio) to prevent overlap/wrapping
-    c_spacer_L, c_prev, c_radio, c_next, c_spacer_R = st.columns([3, 1, 10, 1, 3])
+    # Ratios: 4 : 1 : 8 : 1 : 4
+    # Intermediate ratio to balance gap size and wrapping prevention
+    c_spacer_L, c_prev, c_radio, c_next, c_spacer_R = st.columns([4, 1, 8, 1, 4])
     
     # Previous Chunk
     with c_prev:
