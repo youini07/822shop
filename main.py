@@ -906,24 +906,23 @@ if total_pages > 1:
             justify-content: center;
             flex-wrap: nowrap !important; /* Prevent wrapping */
         }
-        /* Mobile Optimization: Hide Radio Circles & Style as Buttons */
+        /* Mobile Optimization: Hide Radio Circles & Style as Text Links */
         div[data-testid="stRadio"] label > div:first-child {
             display: none !important; /* Hide the circle */
         }
         div[data-testid="stRadio"] label {
-            margin-right: 2px !important;
-            padding: 4px 10px !important;
-            border: 1px solid #ddd !important;
-            border-radius: 5px !important;
+            margin-right: 5px !important;
+            padding: 0 5px !important;
+            border: none !important;
+            background-color: transparent !important;
             cursor: pointer !important;
-            background-color: #f9f9f9;
+            /* Text Styling */
+            /* font-weight: bold; */ /* Optional */
         }
         div[data-testid="stRadio"] label:hover {
-            background-color: #eee;
+            background-color: transparent !important;
+            text-decoration: underline;
         }
-        /* Highlight selected (This is tricky in pure CSS without :has, but we rely on Streamlit's internal state styling or just keeping it simple. 
-           Actually, Streamlit changes the inner text bold/color. We can try to target the checked state if possible, but mostly just removing the circle helps the layout.)
-        */
     </style>
     """, unsafe_allow_html=True)
     
