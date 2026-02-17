@@ -905,8 +905,6 @@ if total_pages > 1:
     # [CSS] Unified Styling for Pagination (Numbers & Arrows)
     st.markdown("""
     <style>
-    st.markdown("""
-    <style>
         /* Right-align the Radio Widget Container */
         div[data-testid="stRadio"] {
             display: flex !important;
