@@ -13,7 +13,7 @@ from datetime import datetime
 # --- Page Config ---
 st.set_page_config(
     page_title="822 SHOP",
-    page_icon="🛍️",
+    page_icon="822logo_final_v2.png",
     layout="wide",
     initial_sidebar_state="collapsed", # On Mobile, collapsed is better
     menu_items={
@@ -42,12 +42,10 @@ st.markdown("""
 
 <style>
     /* Hide Streamlit Header & Footer for App-like feel */
-    /* [MODIFIED] Do NOT hide header, we need hamburger menu for sidebar */
-    /* header[data-testid="stHeader"] {display: none;} */
-    
-    footer {display: none;}
-    #MainMenu {display: none;}
-    .stDeployButton {display: none;}
+    footer {display: none !important;}
+    #MainMenu {visibility: hidden;}
+    .stDeployButton {display: none !important;}
+    header[data-testid="stHeader"] {background: rgba(0,0,0,0) !important;}
     
     /* Global Font & Touch adjustments */
     body {
@@ -72,6 +70,24 @@ st.markdown("""
         min-height: 44px; /* Apple Human Interface Guidelines */
     }
 </style>
+
+<script>
+    // 브라우저 탭 제목에서 " · Streamlit" 제거
+    function fixTitle() {
+        var title = window.parent.document.querySelector('title');
+        if (title && title.innerText.includes('Streamlit')) {
+            title.innerText = "822 SHOP";
+        }
+    }
+    
+    // 페이지 로드 및 업데이트 시 제목 강제 고정
+    const observer = new MutationObserver(fixTitle);
+    const titleNode = window.parent.document.querySelector('title');
+    if (titleNode) {
+        observer.observe(titleNode, { subtree: true, characterData: true, childList: true });
+        fixTitle();
+    }
+</script>
 """, unsafe_allow_html=True)
 
 
