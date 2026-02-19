@@ -287,6 +287,37 @@ lang_code = st.sidebar.radio("Language", ('TH', 'EN', 'KR'), horizontal=True, la
 st.session_state.lang = lang_code
 T = lang_dict[lang_code]
 
+# ─────────────────────────────────────────
+# [페이지 전환] 사이드바 상단 - 소개 / 카탈로그
+# ─────────────────────────────────────────
+if 'sidebar_page' not in st.session_state:
+    st.session_state.sidebar_page = 'catalog'  # 기본: 카탈로그
+
+st.sidebar.markdown("---")
+
+# 버튼 2개를 나란히 배치
+_col_about, _col_catalog = st.sidebar.columns(2)
+with _col_about:
+    if st.button(
+        "📖 소개" if lang_code == 'KR' else ("📖 About" if lang_code == 'EN' else "📖 เกี่ยวกับ"),
+        use_container_width=True,
+        type="primary" if st.session_state.sidebar_page == 'about' else "secondary",
+        key="btn_about"
+    ):
+        st.session_state.sidebar_page = 'about'
+        st.rerun()
+with _col_catalog:
+    if st.button(
+        "🛍️ 카탈로그" if lang_code == 'KR' else ("🛍️ Catalog" if lang_code == 'EN' else "🛍️ สินค้า"),
+        use_container_width=True,
+        type="primary" if st.session_state.sidebar_page == 'catalog' else "secondary",
+        key="btn_catalog"
+    ):
+        st.session_state.sidebar_page = 'catalog'
+        st.rerun()
+
+st.sidebar.markdown("---")
+
 
 # ... (Skip unchanged until grid loop)
 
@@ -352,6 +383,99 @@ st.markdown(f"<div style='text-align: center; margin-bottom: 20px;'>{T['title']}
 
 if df.empty:
     st.warning("No products found. Please check Google Sheet.")
+    st.stop()
+
+# ─────────────────────────────────────────
+# [소개 페이지] sidebar_page == 'about' 일 때 렌더링
+# ─────────────────────────────────────────
+if st.session_state.get('sidebar_page', 'catalog') == 'about':
+    import sys
+    import os
+    # shipping 폴더를 Python 경로에 추가 (상대 임포트 지원)
+    _shipping_dir = os.path.join(os.path.dirname(__file__), 'shipping')
+    if _shipping_dir not in sys.path:
+        sys.path.insert(0, _shipping_dir)
+
+    from ship_tracker_web import get_ship_tracker_html
+    import streamlit.components.v1 as components
+
+    # ── 도착 예정일 데이터: arrival_date 컬럼에서 추출 ──
+    _arrival_col = 'arrival_date'
+    if _arrival_col in df.columns:
+        _raw_arrivals = df[_arrival_col].dropna().astype(str).tolist()
+        # 빈 문자열, 'nan', 'None' 등 제거
+        _arrivals = [v for v in _raw_arrivals if v.strip() and v.lower() not in ('nan', 'none', 'nat', '')]
+    else:
+        _arrivals = []  # 컬럼 없으면 기본 테스트 데이터 사용
+
+    # ── 선박 트래커 렌더링 ──
+    _tracker_html = get_ship_tracker_html(arrival_dates=_arrivals)
+    components.html(_tracker_html, height=310, scrolling=False)
+
+    st.markdown("---")
+
+    # ── 3개 언어 소개글 탭 ──
+    _tab_kr, _tab_en, _tab_th = st.tabs(["🇰🇷 한국어", "🇬🇧 English", "🇹🇭 ภาษาไทย"])
+
+    with _tab_kr:
+        st.markdown("""
+<div style="line-height:1.9; font-size:15px; color:#1a1a2e; padding: 10px 4px;">
+<p style="font-size:18px; font-weight:700; margin-bottom:10px;">우리가 이 옷들을 선택한 이유가 있습니다.</p>
+저희는 단순히 구제 의류를 판매하는 곳이 아닙니다.<br>
+수많은 제품 중에서 <strong>트렌드, 희소성, 그리고 소장 가치</strong>를 기준으로
+셀러가 직접 한 벌 한 벌 엄선한 <strong>프리미엄 세컨핸드 숍</strong>입니다.
+<br><br>
+한국에서 태국으로 해상 운송되는 구제 의류는 무게 기준으로 운임이 책정됩니다.<br>
+저렴한 제품도, 고가의 제품도 무게는 크게 다르지 않습니다.<br>
+그렇기 때문에 저희는 처음부터 <strong>가치 있는 것만</strong> 담기로 했습니다.
+<br><br>
+모든 제품은 의류가 손상되지 않도록 <strong>개별 비닐 포장 후 박스로 안전하게 배송</strong>됩니다.<br>
+압축 포장이나 마대 포장은 절대 사용하지 않습니다.
+<br><br>
+✅ <strong>100% 정품만 취급합니다.</strong><br>
+저희 제품은 모두 브랜드가 확인된 진품이며, 셀러의 안목으로 직접 선별된 특별한 한 벌입니다.
+</div>
+        """, unsafe_allow_html=True)
+
+    with _tab_en:
+        st.markdown("""
+<div style="line-height:1.9; font-size:15px; color:#1a1a2e; padding: 10px 4px;">
+<p style="font-size:18px; font-weight:700; margin-bottom:10px;">Every piece here was chosen for a reason.</p>
+We're not your average secondhand shop.<br>
+We specialize in <strong>premium pre-loved fashion</strong> — carefully handpicked by our in-house seller
+for their trend relevance, rarity, and collectible value.
+<br><br>
+Shipping secondhand clothing from Korea to Thailand by sea means paying freight by weight.<br>
+Since price doesn't affect weight, we made a deliberate choice: <strong>only bring what's truly worth it.</strong>
+<br><br>
+Every item is <strong>individually wrapped and shipped in boxes</strong> to ensure it arrives in pristine condition.<br>
+We never use compression packing or bulk baling — because quality deserves to be treated that way.
+<br><br>
+✅ <strong>100% authentic, always.</strong><br>
+Every piece in our store is a verified genuine item, personally sourced and selected by our seller.
+</div>
+        """, unsafe_allow_html=True)
+
+    with _tab_th:
+        st.markdown("""
+<div style="line-height:1.9; font-size:15px; color:#1a1a2e; padding: 10px 4px;">
+<p style="font-size:18px; font-weight:700; margin-bottom:10px;">ทุกชิ้นที่เราเลือก มีเหตุผลเสมอ</p>
+เราไม่ใช่ร้านเสื้อผ้ามือสองทั่วไป<br>
+เราคัดสรร <strong>เสื้อผ้าพรีเมียมมือสอง</strong> จากเกาหลีโดยเฉพาะ
+ทุกชิ้นผ่านการคัดเลือกด้วยตัวเองจากเซลเลอร์ของเรา โดยพิจารณาจากเทรนด์ ความหายาก และคุณค่าในการสะสม
+<br><br>
+การขนส่งเสื้อผ้ามือสองจากเกาหลีมาไทยทางเรือนั้นคิดราคาตามน้ำหนัก<br>
+เสื้อราคาถูกหรือแพงก็หนักพอๆ กัน เราจึงเลือกที่จะ <strong>นำเข้าเฉพาะสิ่งที่คุ้มค่าจริงๆ</strong> เท่านั้น
+<br><br>
+ทุกชิ้น<strong>ถูกห่อด้วยพลาสติกแยกชิ้น และจัดส่งในกล่อง</strong>เพื่อให้เสื้อผ้าถึงมือคุณในสภาพสมบูรณ์<br>
+เราไม่ใช้การอัดแน่นหรือบรรจุกระสอบ เพราะเราใส่ใจในคุณภาพของสินค้าทุกชิ้น
+<br><br>
+✅ <strong>สินค้าของเราเป็นของแท้ 100% ทุกชิ้น</strong><br>
+คัดมาเองโดยเซลเลอร์ผู้มีประสบการณ์ ตรวจสอบแล้วว่าเป็นของแท้ทุกชิ้น
+</div>
+        """, unsafe_allow_html=True)
+
+    # 소개 페이지에서는 이후 카탈로그 코드 실행 안 함
     st.stop()
 
 # --- Auth & Sidebar ---
