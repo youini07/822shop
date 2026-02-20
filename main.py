@@ -295,26 +295,38 @@ if 'sidebar_page' not in st.session_state:
 
 st.sidebar.markdown("---")
 
-# 버튼 2개를 나란히 배치
-_col_about, _col_catalog = st.sidebar.columns(2)
-with _col_about:
-    if st.button(
-        "📖 소개" if lang_code == 'KR' else ("📖 About" if lang_code == 'EN' else "📖 เกี่ยวกับ"),
-        use_container_width=True,
-        type="primary" if st.session_state.sidebar_page == 'about' else "secondary",
-        key="btn_about"
-    ):
-        st.session_state.sidebar_page = 'about'
-        st.rerun()
-with _col_catalog:
-    if st.button(
-        "🛍️ 카탈로그" if lang_code == 'KR' else ("🛍️ Catalog" if lang_code == 'EN' else "🛍️ สินค้า"),
-        use_container_width=True,
-        type="primary" if st.session_state.sidebar_page == 'catalog' else "secondary",
-        key="btn_catalog"
-    ):
-        st.session_state.sidebar_page = 'catalog'
-        st.rerun()
+# [Fix] st.sidebar.columns() 안에서 st.button()을 쓰면 메인 화면에 렌더되는 Streamlit 버그
+# → st.sidebar.button()을 직접 사용하고, CSS로 나란히 배치
+st.sidebar.markdown("""
+<style>
+/* 소개/카탈로그 버튼 2개를 나란히 배치 */
+div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {
+    gap: 6px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# 실제로는 순차 배치 (버튼이 좁아 두 줄이 되면 가독성이 더 좋음)
+_about_label  = "📖 소개" if lang_code == 'KR' else ("📖 About" if lang_code == 'EN' else "📖 เกี่ยวกับ")
+_catalog_label = "🛍️ 카탈로그" if lang_code == 'KR' else ("🛍️ Catalog" if lang_code == 'EN' else "🛍️ สินค้า")
+
+if st.sidebar.button(
+    _about_label,
+    use_container_width=True,
+    type="primary" if st.session_state.sidebar_page == 'about' else "secondary",
+    key="btn_about"
+):
+    st.session_state.sidebar_page = 'about'
+    st.rerun()
+
+if st.sidebar.button(
+    _catalog_label,
+    use_container_width=True,
+    type="primary" if st.session_state.sidebar_page == 'catalog' else "secondary",
+    key="btn_catalog"
+):
+    st.session_state.sidebar_page = 'catalog'
+    st.rerun()
 
 st.sidebar.markdown("---")
 
