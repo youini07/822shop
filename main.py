@@ -815,53 +815,156 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                 'TH': '🔥 แบรนด์ยอดนิยม'
             }.get(lang_code, '🔥 Popular Brands')
 
-            # ── st.components.v1.html 로 렌더 ──────────────────────────────
-            # st.markdown 내부 js는 샌드박스 iframe에 갇혀 실제 URL 변경 불가
-            # components.v1.html은 별도 iframe 이지만 window.top으로 최상위 창 접근 가능
+            # ── st.button 부활 (기능 보장) + JS 스타일링 ───────────────────
+            # window.top 접근 불가 이슈 해결을 위해 Native st.button 사용
+            # 버튼 박스 제거는 JS로 해당 버튼(라벨에 식별자 포함)을 찾아 스타일 클래스 적용
+
+            # 식별용 Zero Width Space (\u200b)
+            # 버튼 라벨에 이걸 넣어서 JS가 이 버튼만 찾아서 스타일을 바꾸게 함
             import streamlit.components.v1 as components_v1
-            import urllib.parse
+            
+            # 1. CSS 정의 (브랜드 버튼용 클래스)
+            st.markdown("""
+            <style>
+            .brand-text-btn {
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                color: #333 !important;
+                font-size: 17px !important;
+                font-weight: 800 !important;
+                cursor: pointer !important;
+                line-height: 1.5 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.02em !important;
+                min-height: 0 !important;
+                height: auto !important;
+                margin: 0 !important;
+            }
+            .brand-text-btn:hover {
+                color: #e63946 !important;
+                text-decoration: underline !important;
+                background: transparent !important;
+            }
+            .brand-text-btn:focus, .brand-text-btn:active {
+                color: #e63946 !important;
+                background: transparent !important;
+                border: none !important;
+                outline: none !important;
+            }
+            .brand-text-btn p {
+                font-size: 17px !important;
+                font-weight: 800 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            /* 선택된 상태 (JS로 클래스 추가 예정) */
+            .brand-text-btn-active {
+                color: #e63946 !important;
+                text-decoration: underline !important;
+            }
+            .brand-text-btn-active p {
+                color: #e63946 !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
 
-            _brand_spans = []
-            for _bname in top_brands:
-                _is_active = _bname in _bar_selected
-                _encoded = urllib.parse.quote(_bname, safe='')
-                # 선택 → bb="" (해제), 미선택 → bb=브랜드명
-                _bb_val = "" if _is_active else _bname.replace("'", "\\'")
-                # window.top.location: 실제 브라우저 탭의 URL을 변경 → Streamlit rerun 발생
-                _js = (
-                    f"var u=new URLSearchParams(window.top.location.search);"
-                    f"u.set('bb','{_bb_val}');"
-                    f"window.top.location.search=u.toString();"
-                )
-                _color = "#e63946" if _is_active else "#dddddd"
-                _weight = "900" if _is_active else "700"
-                _underline = "underline" if _is_active else "none"
-                _span = (
-                    f'<span onclick="{_js}" style="'
-                    f'color:{_color};'
-                    f'font-weight:{_weight};'
-                    f'text-decoration:{_underline};'
-                    f'font-size:17px;'
-                    f'letter-spacing:0.03em;'
-                    f'cursor:pointer;'
-                    f'user-select:none;'
-                    f'transition:color 0.15s;'
-                    f'">{_bname}</span>'
-                )
-                _brand_spans.append(_span)
-
-            _sep = '<span style="color:#444;font-size:15px;margin:0 5px;user-select:none;">|</span>'
-            _brands_html = _sep.join(_brand_spans)
-
-            _bar_html = f"""
-            <div style="font-family:inherit; padding:4px 0 10px 0;">
-                <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:0.1em;margin-bottom:6px;text-transform:uppercase;">{_brand_bar_label}</div>
-                <div style="line-height:2.4;flex-wrap:wrap;">{_brands_html}</div>
-            </div>
+            # 2. JS 주입 (버튼 찾아서 클래스 부여)
+            # \u200b 가 포함된 버튼을 찾아 .brand-text-btn 클래스 추가
+            _js_script = """
+            <script>
+            function styleBrandButtons() {
+                try {
+                    const buttons = window.parent.document.querySelectorAll('button');
+                    buttons.forEach(btn => {
+                        if (btn.innerText.includes('\\u200b')) {
+                            btn.classList.add('brand-text-btn');
+                            // 선택된 버튼(active) 처리 확인 (빨간색)
+                            // st.button은 클릭 후 리로드되므로 상태 유지는 Python -> 재렌더링 시 적용
+                            // 다만 :focus 상태 등이 남을 수 있으므로 강제 스타일링
+                            
+                            // 텍스트에서 \u200b 제거된 것처럼 보이게? (이미 안보임)
+                        }
+                    });
+                } catch (e) { console.log(e); }
+            }
+            // 0.5초 간격으로 시도 (Streamlit 렌더링 타이밍 이슈 대응)
+            setTimeout(styleBrandButtons, 50);
+            setTimeout(styleBrandButtons, 300);
+            setTimeout(styleBrandButtons, 1000);
+            </script>
             """
-            # height: 브랜드 수에 따라 동적으로 조정 (10개 기준 약 70px)
-            _bar_height = 70 if len(top_brands) <= 10 else 110
-            components_v1.html(_bar_html, height=_bar_height, scrolling=False)
+            components_v1.html(_js_script, height=0)
+
+            st.markdown(
+                f"<div style='font-size:11px; font-weight:700; color:#888; letter-spacing:0.08em; margin-bottom:5px; text-transform:uppercase;'>{_brand_bar_label}</div>",
+                unsafe_allow_html=True
+            )
+
+            # 3. 버튼 배치 (구분자 포함하여 컬럼 나누기)
+            # n개 브랜드 -> 2n-1개 컬럼 (브랜드, 구분자, 브랜드, 구분자...)
+            # 비율: 브랜드(auto) 구분자(작게)
+            # Streamlit 컬럼 비율은 list로 전달
+            _col_specs = []
+            for _i in range(len(top_brands)):
+                _col_specs.append(1) # 브랜드
+                if _i < len(top_brands) - 1:
+                    _col_specs.append(0.05) # 구분자
+
+            _cols = st.columns(_col_specs)
+            
+            for _i, _bname in enumerate(top_brands):
+                _idx_col = _i * 2
+                with _cols[_idx_col]:
+                    _is_active = _bname in _bar_selected
+                    # 버튼 생성 (\u200b 포함)
+                    # 선택된 경우 빨간색 스타일을 위해 JS가 아닌 Python 로직 필요하지만
+                    # st.button 자체 스타일 한계로 CSS 클래스 주입 방식 사용
+                    # 활성 상태면 CSS에서 색상 처리를 위해 별도 마킹이 필요하나,
+                    # 단순하게 선택 상태면 ★ 같은 마커를 붙이거나 색상을 다르게? 
+                    # -> JS가 텍스트 내용을 보고 active 클래스 추가하도록 텍스트 변형
+                    
+                    # 선택된 경우 텍스트 뒤에 또다른 식별자(Zero Width Joiner \u200d) 추가하여 JS가 인식하게 함
+                    _label = f"\u200b{_bname}" + ("\u200d" if _is_active else "")
+                    
+                    if st.button(_label, key=f"btn_brand_{_bname}", use_container_width=True):
+                        # 토글 로직
+                        if _bname in st.session_state.get('selected_brands_bar', []):
+                            st.session_state['selected_brands_bar'] = []
+                        else:
+                            st.session_state['selected_brands_bar'] = [_bname]
+                        st.rerun()
+
+                    # 선택된 버튼이면 JS로 active 클래스 추가 ( script 재활용 )
+                    if _is_active:
+                         # 이 부분은 위의 JS가 \u200d 를 감지해서 처리하도록 함
+                         pass
+
+                # 구분자
+                if _i < len(top_brands) - 1:
+                    _idx_sep = _i * 2 + 1
+                    with _cols[_idx_sep]:
+                         st.markdown("<div style='text-align:center;color:#ccc;line-height:2.0;font-size:14px;user-select:none;'>|</div>", unsafe_allow_html=True)
+            
+            # JS 업데이트: \u200d가 있으면 active 클래스 추가
+            _js_active_script = """
+            <script>
+            function markActiveButtons() {
+                try {
+                    const buttons = window.parent.document.querySelectorAll('button');
+                    buttons.forEach(btn => {
+                        if (btn.innerText.includes('\\u200d')) {
+                            btn.classList.add('brand-text-btn-active');
+                        }
+                    });
+                } catch(e) {}
+            }
+            setTimeout(markActiveButtons, 100);
+            setTimeout(markActiveButtons, 500);
+            </script>
+            """
+            components_v1.html(_js_active_script, height=0)
 
 
 
