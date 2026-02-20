@@ -870,29 +870,32 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
             </style>
             """, unsafe_allow_html=True)
 
-            # 2. JS 주입 (버튼 찾아서 클래스 부여)
-            # \u200b 가 포함된 버튼을 찾아 .brand-text-btn 클래스 추가
+            # 2. JS 주입 (버튼 찾아서 클래스 부여 - MutationObserver 사용)
+            # 동적으로 생성되는 버튼도 감지하여 스타일 적용 (깜빡임 최소화)
             _js_script = """
             <script>
-            function styleBrandButtons() {
+            function applyStyle() {
                 try {
                     const buttons = window.parent.document.querySelectorAll('button');
                     buttons.forEach(btn => {
                         if (btn.innerText.includes('\\u200b')) {
                             btn.classList.add('brand-text-btn');
-                            // 선택된 버튼(active) 처리 확인 (빨간색)
-                            // st.button은 클릭 후 리로드되므로 상태 유지는 Python -> 재렌더링 시 적용
-                            // 다만 :focus 상태 등이 남을 수 있으므로 강제 스타일링
-                            
-                            // 텍스트에서 \u200b 제거된 것처럼 보이게? (이미 안보임)
+                            if (btn.innerText.includes('\\u200d')) {
+                                btn.classList.add('brand-text-btn-active');
+                            }
                         }
                     });
-                } catch (e) { console.log(e); }
+                } catch(e) {}
             }
-            // 0.5초 간격으로 시도 (Streamlit 렌더링 타이밍 이슈 대응)
-            setTimeout(styleBrandButtons, 50);
-            setTimeout(styleBrandButtons, 300);
-            setTimeout(styleBrandButtons, 1000);
+
+            // 1. 초기 로드 시 실행
+            applyStyle();
+
+            // 2. DOM 변화 감지하여 실행 (버튼 추가 시 즉시 적용)
+            const observer = new MutationObserver((mutations) => {
+                applyStyle();
+            });
+            observer.observe(window.parent.document.body, { childList: true, subtree: true });
             </script>
             """
             components_v1.html(_js_script, height=0)
@@ -902,11 +905,11 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                 unsafe_allow_html=True
             )
 
-            # 3. 버튼 배치 (3열 그리드)
-            # 한 줄에 3개씩 배치. 논리적 순서 유지를 위해 매 행(Row)마다 컬럼 생성
-            for _r_idx in range(0, len(top_brands), 3):
-                _row_brands = top_brands[_r_idx : _r_idx + 3]
-                _cols = st.columns(3)
+            # 3. 버튼 배치 (5열 그리드)
+            # 한 줄에 5개씩 배치. 논리적 순서 유지를 위해 매 행(Row)마다 컬럼 생성
+            for _r_idx in range(0, len(top_brands), 5):
+                _row_brands = top_brands[_r_idx : _r_idx + 5]
+                _cols = st.columns(5)
                 
                 for _c_idx, _bname in enumerate(_row_brands):
                     with _cols[_c_idx]:
@@ -922,24 +925,6 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                                 st.session_state['selected_brands_bar'] = [_bname]
                             st.rerun()
 
-            # JS 업데이트: \u200d가 있으면 active 클래스 추가
-            _js_active_script = """
-            <script>
-            function markActiveButtons() {
-                try {
-                    const buttons = window.parent.document.querySelectorAll('button');
-                    buttons.forEach(btn => {
-                        if (btn.innerText.includes('\\u200d')) {
-                            btn.classList.add('brand-text-btn-active');
-                        }
-                    });
-                } catch(e) {}
-            }
-            setTimeout(markActiveButtons, 100);
-            setTimeout(markActiveButtons, 500);
-            </script>
-            """
-            components_v1.html(_js_active_script, height=0)
 
 
 
