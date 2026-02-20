@@ -797,52 +797,16 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
         top_brands = top_brands[top_brands != 'Unknown']
         top_brands = top_brands.value_counts().head(10).index.tolist()
         if top_brands:
-            # 브랜드 바 선택 상태 (먼저 읽어서 버튼 활성화에 사용)
-            _bar_selected = st.session_state.get('selected_brands_bar', [])
+            # ── query_params 기반 브랜드 바 ──────────────────────────────────
+            # 클릭 시 ?bb=브랜드명 파라미터를 URL에 반영 → Streamlit 리로드 시 읽음
+            # st.button 일절 사용 안 함 → 버튼 박스 없음
 
-            # ── 텍스트 버튼 CSS ──
-            # Streamlit 버튼 DOM 구조: div[data-testid="stColumn"] > div > div[data-testid="stButton"] > button > p
-            # 이 영역 바로 아래에 오는 buttons 전체에 텍스트 스타일 적용
-            st.markdown("""
-            <style>
-            /* 브랜드 바: 버튼 박스 완전 제거 → 텍스트만 */
-            button[data-testid="baseButton-secondary"] {
-                background: transparent !important;
-                border: none !important;
-                outline: none !important;
-                box-shadow: none !important;
-            }
-            /* 브랜드 바 위치의 stColumn 내 모든 버튼 텍스트화 */
-            section.main div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"]
-              div[data-testid="stHorizontalBlock"] button {
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-                padding: 1px 4px !important;
-                min-height: 0px !important;
-                height: auto !important;
-                font-size: 13px !important;
-                font-weight: 800 !important;
-                color: #333 !important;
-                text-transform: uppercase;
-                letter-spacing: 0.03em;
-                line-height: 1.8;
-            }
-            section.main div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"]
-              div[data-testid="stHorizontalBlock"] button:hover {
-                color: #e63946 !important;
-                text-decoration: underline !important;
-                background: transparent !important;
-            }
-            section.main div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"]
-              div[data-testid="stHorizontalBlock"] button p {
-                font-size: 13px !important;
-                font-weight: 800 !important;
-                margin: 0 !important;
-                text-transform: uppercase;
-            }
-            </style>
-            """, unsafe_allow_html=True)
+            # 현재 선택된 브랜드 (query_param 우선, 없으면 session_state)
+            _qb = st.query_params.get('bb', '')
+            if _qb:
+                # URL 파라미터가 있으면 session_state에 동기화
+                st.session_state['selected_brands_bar'] = [_qb]
+            _bar_selected = st.session_state.get('selected_brands_bar', [])
 
             # 라벨
             _brand_bar_label = {
@@ -850,48 +814,43 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                 'EN': '🔥 Popular Brands',
                 'TH': '🔥 แบรนด์ยอดนิยม'
             }.get(lang_code, '🔥 Popular Brands')
-            st.markdown(
-                f"<div style='font-size:12px; font-weight:700; color:#aaa; margin-bottom:2px; letter-spacing:0.05em;'>{_brand_bar_label}</div>",
-                unsafe_allow_html=True
-            )
 
-            # 브랜드 버튼들을 가로로 배치
-            # columns 비율: 브랜드(1) | 구분자(0.05) | 브랜드(1) | ...
-            _n = len(top_brands)
-            _col_ratios = []
-            for _i in range(_n):
-                _col_ratios.append(1)
-                if _i < _n - 1:
-                    _col_ratios.append(0.05)
-            _all_cols = st.columns(_col_ratios)
+            # HTML 텍스트 링크 빌드
+            # 선택된 브랜드: 빨간색/밑줄, 미선택: 흰색/회색
+            # 클릭 시 ?bb=브랜드명 , 이미 선택된 것 클릭 시 ?bb= (해제)
+            _brand_links_html = []
+            for _bname in top_brands:
+                _is_active = _bname in _bar_selected
+                # URL 인코딩 (브랜드 이름에 공백 등 포함 가능)
+                import urllib.parse
+                _encoded = urllib.parse.quote(_bname)
+                # 이미 선택된 브랜드 클릭 시 해제 (?bb= 로 비움)
+                _href = f"?bb=" if _is_active else f"?bb={_encoded}"
+                _color = "#e63946" if _is_active else "inherit"
+                _decoration = "underline" if _is_active else "none"
+                _weight = "900" if _is_active else "800"
+                _brand_links_html.append(
+                    f'<a href="{_href}" style="'
+                    f'color:{_color}; '
+                    f'text-decoration:{_decoration}; '
+                    f'font-weight:{_weight}; '
+                    f'font-size:13px; '
+                    f'letter-spacing:0.03em; '
+                    f'text-transform:uppercase; '
+                    f'font-family:inherit; '
+                    f'cursor:pointer;'
+                    f'">{_bname}</a>'
+                )
 
-            _col_cursor = 0
-            for _bi, _bname in enumerate(top_brands):
-                with _all_cols[_col_cursor]:
-                    _is_active = _bname in _bar_selected
-                    # 선택된 브랜드: 빨간색+밑줄 CSS (이 컬럼 내 첫 번째 버튼)
-                    if _is_active:
-                        st.markdown("""
-                        <style>
-                        div.brand-text-row button[kind="secondary"]:focus,
-                        div.brand-text-row button[aria-pressed="true"] {
-                            color: #e63946 !important;
-                            text-decoration: underline !important;
-                        }
-                        </style>
-                        """, unsafe_allow_html=True)
-                    if st.button(_bname, key=f"brand_bar_{_bname}", use_container_width=True):
-                        if _bname in st.session_state.get('selected_brands_bar', []):
-                            st.session_state['selected_brands_bar'] = []
-                        else:
-                            st.session_state['selected_brands_bar'] = [_bname]
-                        st.rerun()
-                _col_cursor += 1
+            # 구분자 |로 join
+            _brands_row = ' <span style="color:#555; font-size:13px; margin:0 2px;">|</span> '.join(_brand_links_html)
 
-                if _bi < _n - 1:
-                    with _all_cols[_col_cursor]:
-                        st.markdown("<div style='text-align:center; color:#ccc; font-size:13px; padding-top:6px;'>|</div>", unsafe_allow_html=True)
-                    _col_cursor += 1
+            st.markdown(f"""
+            <div style="margin-bottom: 10px;">
+                <div style="font-size:11px; font-weight:700; color:#888; letter-spacing:0.08em; margin-bottom:5px; text-transform:uppercase;">{_brand_bar_label}</div>
+                <div style="line-height:2; flex-wrap:wrap;">{_brands_row}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
             # 브랜드 바 선택값을 기존 사이드바 브랜드 필터에 반영
             if _bar_selected and not selected_brands:
