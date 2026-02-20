@@ -796,74 +796,109 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
         )
         top_brands = top_brands[top_brands != 'Unknown']
         top_brands = top_brands.value_counts().head(10).index.tolist()
-
         if top_brands:
+            # 브랜드 바 선택 상태 (먼저 읽어서 버튼 활성화에 사용)
+            _bar_selected = st.session_state.get('selected_brands_bar', [])
+
+            # ── 텍스트 버튼 CSS ──
+            # Streamlit 버튼 DOM 구조: div[data-testid="stColumn"] > div > div[data-testid="stButton"] > button > p
+            # 이 영역 바로 아래에 오는 buttons 전체에 텍스트 스타일 적용
             st.markdown("""
             <style>
-            .brand-bar-container {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                margin-bottom: 12px;
-                padding: 10px 4px 4px 4px;
+            /* 브랜드 바: 버튼 박스 완전 제거 → 텍스트만 */
+            button[data-testid="baseButton-secondary"] {
+                background: transparent !important;
+                border: none !important;
+                outline: none !important;
+                box-shadow: none !important;
             }
-            .brand-pill {
-                display: inline-block;
-                background: #f0f0f0;
-                border: 1.5px solid #ddd;
-                border-radius: 20px;
-                padding: 5px 14px;
-                font-size: 13px;
-                font-weight: 700;
-                color: #222;
-                cursor: pointer;
-                transition: all 0.15s;
+            /* 브랜드 바 위치의 stColumn 내 모든 버튼 텍스트화 */
+            section.main div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"]
+              div[data-testid="stHorizontalBlock"] button {
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 1px 4px !important;
+                min-height: 0px !important;
+                height: auto !important;
+                font-size: 13px !important;
+                font-weight: 800 !important;
+                color: #333 !important;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                line-height: 1.8;
             }
-            .brand-pill:hover {
-                background: #222;
-                color: #fff;
-                border-color: #222;
+            section.main div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"]
+              div[data-testid="stHorizontalBlock"] button:hover {
+                color: #e63946 !important;
+                text-decoration: underline !important;
+                background: transparent !important;
             }
-            .brand-pill-active {
-                background: #1a1a2e;
-                color: #fff !important;
-                border-color: #1a1a2e;
+            section.main div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"]
+              div[data-testid="stHorizontalBlock"] button p {
+                font-size: 13px !important;
+                font-weight: 800 !important;
+                margin: 0 !important;
+                text-transform: uppercase;
             }
             </style>
             """, unsafe_allow_html=True)
 
-            # 브랜드 라벨
-            _brand_bar_label = {'KO': '🔥 인기 브랜드', 'EN': '🔥 Popular Brands', 'TH': '🔥 แบรนด์ยอดนิยม'}.get(lang_code, '🔥 Popular Brands')
-            st.markdown(f"<div style='font-size:13px; font-weight:700; color:#888; margin-bottom:4px;'>{_brand_bar_label}</div>", unsafe_allow_html=True)
+            # 라벨
+            _brand_bar_label = {
+                'KO': '🔥 인기 브랜드',
+                'EN': '🔥 Popular Brands',
+                'TH': '🔥 แบรนด์ยอดนิยม'
+            }.get(lang_code, '🔥 Popular Brands')
+            st.markdown(
+                f"<div style='font-size:12px; font-weight:700; color:#aaa; margin-bottom:2px; letter-spacing:0.05em;'>{_brand_bar_label}</div>",
+                unsafe_allow_html=True
+            )
 
-            # 버튼 한 줄 배치 (st.button을 columns로 나열)
-            # 최대 10개이므로 한 줄에 5개씩 2줄로 나눔
-            _chunk_size = 5
-            for _row_start in range(0, len(top_brands), _chunk_size):
-                _row_brands = top_brands[_row_start:_row_start + _chunk_size]
-                _bcols = st.columns(len(_row_brands))
-                for _bi, _bname in enumerate(_row_brands):
-                    with _bcols[_bi]:
-                        # 현재 선택된 브랜드면 primary 타입으로 강조
-                        _is_active = _bname in st.session_state.get('selected_brands_bar', [])
-                        _btn_type = "primary" if _is_active else "secondary"
-                        if st.button(_bname, key=f"brand_bar_{_bname}", type=_btn_type, use_container_width=True):
-                            # 토글: 이미 선택돼있으면 해제, 아니면 활성화
-                            if _bname in st.session_state.get('selected_brands_bar', []):
-                                st.session_state['selected_brands_bar'] = []
-                            else:
-                                st.session_state['selected_brands_bar'] = [_bname]
-                            st.rerun()
+            # 브랜드 버튼들을 가로로 배치
+            # columns 비율: 브랜드(1) | 구분자(0.05) | 브랜드(1) | ...
+            _n = len(top_brands)
+            _col_ratios = []
+            for _i in range(_n):
+                _col_ratios.append(1)
+                if _i < _n - 1:
+                    _col_ratios.append(0.05)
+            _all_cols = st.columns(_col_ratios)
+
+            _col_cursor = 0
+            for _bi, _bname in enumerate(top_brands):
+                with _all_cols[_col_cursor]:
+                    _is_active = _bname in _bar_selected
+                    # 선택된 브랜드: 빨간색+밑줄 CSS (이 컬럼 내 첫 번째 버튼)
+                    if _is_active:
+                        st.markdown("""
+                        <style>
+                        div.brand-text-row button[kind="secondary"]:focus,
+                        div.brand-text-row button[aria-pressed="true"] {
+                            color: #e63946 !important;
+                            text-decoration: underline !important;
+                        }
+                        </style>
+                        """, unsafe_allow_html=True)
+                    if st.button(_bname, key=f"brand_bar_{_bname}", use_container_width=True):
+                        if _bname in st.session_state.get('selected_brands_bar', []):
+                            st.session_state['selected_brands_bar'] = []
+                        else:
+                            st.session_state['selected_brands_bar'] = [_bname]
+                        st.rerun()
+                _col_cursor += 1
+
+                if _bi < _n - 1:
+                    with _all_cols[_col_cursor]:
+                        st.markdown("<div style='text-align:center; color:#ccc; font-size:13px; padding-top:6px;'>|</div>", unsafe_allow_html=True)
+                    _col_cursor += 1
 
             # 브랜드 바 선택값을 기존 사이드바 브랜드 필터에 반영
-            # (사이드바 필터가 없으면 브랜드 바 값 사용, 둘 다 있으면 OR 합집합)
-            _bar_selected = st.session_state.get('selected_brands_bar', [])
             if _bar_selected and not selected_brands:
-                # 사이드바 필터 없고 브랜드 바만 있는 경우
                 selected_brands = _bar_selected
             elif _bar_selected and selected_brands:
-                # 둘 다 선택 시 교집합(AND) 적용
                 selected_brands = list(set(selected_brands) & set(_bar_selected)) or _bar_selected
+
 
     # ─── 카탈로그 필터링 / 정렬 / 그리드 ───────────────────────────────────
     # 소개 페이지일 때는 이 블록 전체가 실행되지 않음
