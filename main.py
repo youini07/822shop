@@ -503,9 +503,8 @@ Every piece in our store is a verified genuine item, personally sourced and sele
 </div>
     """, unsafe_allow_html=True)
 
-    # 소개 페이지에서는 이후 카탈로그 코드 실행 안 함
-
-    st.stop()
+    # 소개 페이지 콘텐츠 끝 (st.stop() 없이 계속 진행 → 사이드바 필터가 항상 렌더됨)
+    pass  # 이어서 사이드바 auth/필터 코드 실행
 
 # --- Auth & Sidebar ---
 import extra_streamlit_components as stx
@@ -780,508 +779,371 @@ debug_mode = False
 if st.session_state['user'] and st.session_state['user']['user_id'] == 'youini07':
     debug_mode = st.sidebar.checkbox("🛠️ Debug Mode", value=False)
 
-# --- Sort Options ---
-sort_option = st.selectbox(T['sort'], T['sort_options'])
+# --- Sort + 카탈로그 그리드: 소개 페이지일 때는 건너뜀 ---
+if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
+    sort_option = st.selectbox(T['sort'], T['sort_options'])
 
-# --- App Logic: Filtering ---
-filtered_df = df.copy()
+    # ─── 카탈로그 필터링 / 정렬 / 그리드 ───────────────────────────────────
+    # 소개 페이지일 때는 이 블록 전체가 실행되지 않음
+    filtered_df = df.copy()
 
-# Filter by Arrival Status (Show Arrived Only)
-if show_arrived_only:
-    # Helper to check if "has arrival info" (meaning NOT arrived yet)
-    def has_arrival_info(val):
-        s = str(val).strip().lower()
-        # Explicitly return boolean to avoid TypeError with ~ operator
-        is_valid = s and s != 'nan' and s != 'nat' and s != 'none' and s != ''
-        return bool(is_valid)
-        
-    # Apply mask: Keep only rows where has_arrival_info is False
-    if 'arrival_date' in filtered_df.columns:
-        mask_has_arrival = filtered_df['arrival_date'].apply(has_arrival_info)
-        filtered_df = filtered_df[~mask_has_arrival]
+    # Filter by Arrival Status (Show Arrived Only)
+    if show_arrived_only:
+        def has_arrival_info(val):
+            s = str(val).strip().lower()
+            return bool(s and s != 'nan' and s != 'nat' and s != 'none' and s != '')
+        if 'arrival_date' in filtered_df.columns:
+            mask_has_arrival = filtered_df['arrival_date'].apply(has_arrival_info)
+            filtered_df = filtered_df[~mask_has_arrival]
 
-# Filter by My Wishlist (Logic updated to use the checkbox defined earlier)
-if st.session_state['user']:
-    # show_my_wishlist is now defined above
-    if show_my_wishlist:
-        my_likes_ids = am.get_user_likes(st.session_state['user']['user_id'])
+    # Filter by My Wishlist (Logic updated to use the checkbox defined earlier)
+    if st.session_state['user']:
+        if show_my_wishlist:
+            my_likes_ids = am.get_user_likes(st.session_state['user']['user_id'])
+            if 'code' in filtered_df.columns:
+                filtered_df = filtered_df[filtered_df['code'].astype(str).isin(my_likes_ids)]
+
+    if debug_mode:
+        st.warning("Debug Mode On")
+        st.write("### Data Preview")
+        preview_cols = [c for c in ['code', 'name', 'stock', 'price'] if c in filtered_df.columns]
+        st.dataframe(filtered_df[preview_cols].head())
+
+    # Filter: Status ('onsale' vs 'out of stock')
+    if 'stock' in filtered_df.columns:
+        filtered_df['stock_norm'] = filtered_df['stock'].astype(str).str.lower().str.strip()
+        if not show_sold_out:
+            mask = filtered_df['stock_norm'].str.contains('out of stock', na=False)
+            filtered_df = filtered_df[~mask]
+
+    # Filter: Search (Name OR Code)
+    if search_query:
+        search_col_matches = filtered_df['name'].str.contains(search_query, case=False, na=False)
         if 'code' in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df['code'].astype(str).isin(my_likes_ids)]
+            search_col_matches = search_col_matches | filtered_df['code'].astype(str).str.contains(search_query, case=False, na=False)
+        if 'id' in filtered_df.columns:
+            search_col_matches = search_col_matches | filtered_df['id'].astype(str).str.contains(search_query, case=False, na=False)
+        filtered_df = filtered_df[search_col_matches]
 
-if debug_mode:
-    st.warning("Debug Mode On")
-    st.write("### Data Preview")
-    # [FIX] Use 'stock' not 'status'
-    preview_cols = [c for c in ['code', 'name', 'stock', 'price'] if c in filtered_df.columns]
-    st.dataframe(filtered_df[preview_cols].head()) 
+    # Filter: Brand
+    if selected_brands:
+        filtered_df = filtered_df[filtered_df['brand'].isin(selected_brands)]
 
-# Filter: Status ('onsale' vs 'out of stock')
-# Checking against the 'stock' column which user confirmed holds the status
-if 'stock' in filtered_df.columns:
-    # Normalize
-    filtered_df['stock_norm'] = filtered_df['stock'].astype(str).str.lower().str.strip()
-    
-    if not show_sold_out:
-        # Exclude rows where stock is 'out of stock'
-        # Using ~ (not) operator on the mask
-        mask = filtered_df['stock_norm'].str.contains('out of stock', na=False)
-        filtered_df = filtered_df[~mask]
+    # Filter: Upper Category
+    if selected_upper:
+        if 'upper_category' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['upper_category'].isin(selected_upper)]
 
-# Filter: Search (Name OR Code)
-if search_query:
-    # Check if 'code' column exists (Col A often named 'code')
-    # If not, try to guess or just use 'name'
-    search_col_matches = filtered_df['name'].str.contains(search_query, case=False, na=False)
-    
-    if 'code' in filtered_df.columns:
-        search_col_matches = search_col_matches | filtered_df['code'].astype(str).str.contains(search_query, case=False, na=False)
-    
-    if 'id' in filtered_df.columns:
-        search_col_matches = search_col_matches | filtered_df['id'].astype(str).str.contains(search_query, case=False, na=False)
-        
-    filtered_df = filtered_df[search_col_matches]
+    # Filter: Category
+    if selected_categories:
+        filtered_df = filtered_df[filtered_df['category'].isin(selected_categories)]
 
-# Filter: Brand
-if selected_brands:
-    filtered_df = filtered_df[filtered_df['brand'].isin(selected_brands)]
+    # Filter: Size
+    if selected_sizes:
+        filtered_df = filtered_df[filtered_df['size'].isin(selected_sizes)]
 
-# [NEW] Filter by Upper Category
-if selected_upper:
-    if 'upper_category' in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df['upper_category'].isin(selected_upper)]
+    # Filter: Price
+    filtered_df = filtered_df[(filtered_df['price'] >= filter_min) & (filtered_df['price'] <= filter_max)]
 
-# Filter: Category
-if selected_categories:
-    filtered_df = filtered_df[filtered_df['category'].isin(selected_categories)]
+    # --- Sorting ---
+    sort_map = {
+        "최신순": "Newest", "Newest (Newest)": "Newest", "ล่าสุด (Newest)": "Newest",
+        "가격 낮은순": "Price_Low", "Price: Low to High (Low-High)": "Price_Low", "ราคา: ต่ำไปสูง (Low-High)": "Price_Low",
+        "가격 높은순": "Price_High", "Price: High to Low (High-Low)": "Price_High", "ราคา: สูงไปต่ำ (High-Low)": "Price_High",
+        "이름순": "Name", "Name (Name)": "Name", "ชื่อ (Name)": "Name"
+    }
+    s_opt = sort_option
+    if "Newest" in s_opt or "ล่าสุด" in s_opt or "최신" in s_opt:
+        current_sort = "Newest"
+    elif "Low" in s_opt or "ต่ำไปสูง" in s_opt or "낮은" in s_opt:
+        current_sort = "Price_Low"
+    elif "High" in s_opt or "สูงไปต่ำ" in s_opt or "높은" in s_opt:
+        current_sort = "Price_High"
+    else:
+        current_sort = "Name"
 
-# Filter: Size
-if selected_sizes:
-    filtered_df = filtered_df[filtered_df['size'].isin(selected_sizes)]
+    if current_sort == "Newest":
+        if 'updated_at' in filtered_df.columns:
+            parsed_dates = pd.to_datetime(filtered_df['updated_at'], format='%m/%d', errors='coerce')
+            mask = parsed_dates.isna()
+            if mask.any():
+                parsed_dates.loc[mask] = pd.to_datetime(filtered_df.loc[mask, 'updated_at'], errors='coerce')
+            filtered_df['sort_date'] = parsed_dates
+            filtered_df = filtered_df.sort_values(by='sort_date', ascending=False)
+    elif current_sort == "Price_Low":
+        filtered_df = filtered_df.sort_values(by='price', ascending=True)
+    elif current_sort == "Price_High":
+        filtered_df = filtered_df.sort_values(by='price', ascending=False)
+    elif current_sort == "Name":
+        filtered_df = filtered_df.sort_values(by='name', ascending=True)
 
-# Filter: Price
-filtered_df = filtered_df[(filtered_df['price'] >= filter_min) & (filtered_df['price'] <= filter_max)]
+    # --- Pagination ---
+    if 'page' not in st.session_state:
+        st.session_state.page = 1
 
-# --- App Logic: Sorting ---
-# Map sort options to English keys for logic
-sort_map = {
-    "최신순": "Newest", "Newest (Newest)": "Newest", "ล่าสุด (Newest)": "Newest",
-    "가격 낮은순": "Price_Low", "Price: Low to High (Low-High)": "Price_Low", "ราคา: ต่ำไปสูง (Low-High)": "Price_Low",
-    "가격 높은순": "Price_High", "Price: High to Low (High-Low)": "Price_High", "ราคา: สูงไปต่ำ (High-Low)": "Price_High",
-    "이름순": "Name", "Name (Name)": "Name", "ชื่อ (Name)": "Name"
-}
-# Fallback logic
-s_opt = sort_option
-if "Newest" in s_opt or "ล่าสุด" in s_opt or "최신" in s_opt:
-    current_sort = "Newest"
-elif "Low" in s_opt or "ต่ำไปสูง" in s_opt or "낮은" in s_opt:
-    current_sort = "Price_Low"
-elif "High" in s_opt or "สูงไปต่ำ" in s_opt or "높은" in s_opt:
-    current_sort = "Price_High"
-else:
-    current_sort = "Name"
+    items_per_page = 12
+    total_items = len(filtered_df)
+    total_pages = max(1, (total_items - 1) // items_per_page + 1)
 
-if current_sort == "Newest":
-    if 'updated_at' in filtered_df.columns:
-        # [MODIFIED] Robust Date Parsing for Sorting
-        # 1. Try format MM/DD (e.g. 02/13) -> defaults to 1900-02-13, good for sorting.
-        parsed_dates = pd.to_datetime(filtered_df['updated_at'], format='%m/%d', errors='coerce')
-        
-        # 2. If NaT, try standard accessible formats (e.g. YYYY-MM-DD)
-        mask = parsed_dates.isna()
-        if mask.any():
-             parsed_dates.loc[mask] = pd.to_datetime(filtered_df.loc[mask, 'updated_at'], errors='coerce')
-        
-        # Create temporary column for sorting to avoid messing up display (if display uses original string)
-        # Actually logic uses 'updated_at' column for display in expander? 
-        # Line 468: st.write(f"{T['date_title']}: {row.get('updated_at', '-')}")
-        # So we should preserve original string?
-        # df is copied to filtered_df. modifying filtered_df['updated_at'] affects display if we use filtered_df for display.
-        # Yes, we use filtered_df in the grid loop. So we should NOT overwrite 'updated_at' with datetime object if we want to keep original string format?
-        # Wait, if we overwrite with datetime, it prints as YYYY-MM-DD which is arguably better than 02/13.
-        # But let's be safe and use a separate column for sorting.
-        
-        filtered_df['sort_date'] = parsed_dates
-        filtered_df = filtered_df.sort_values(by='sort_date', ascending=False)
-elif current_sort == "Price_Low":
-    filtered_df = filtered_df.sort_values(by='price', ascending=True)
-elif current_sort == "Price_High":
-    filtered_df = filtered_df.sort_values(by='price', ascending=False)
-elif current_sort == "Name":
-    filtered_df = filtered_df.sort_values(by='name', ascending=True)
+    if st.session_state.page > total_pages:
+        st.session_state.page = 1
 
-# --- App Logic: Pagination ---
-# --- App Logic: Pagination ---
-if 'page' not in st.session_state:
-    st.session_state.page = 1
+    start_idx = (st.session_state.page - 1) * items_per_page
+    end_idx = start_idx + items_per_page
+    page_items = filtered_df.iloc[start_idx:end_idx]
 
-items_per_page = 12
-total_items = len(filtered_df)
-total_pages = max(1, (total_items - 1) // items_per_page + 1)
+    # --- Display Grid (3 per row) ---
+    st.divider()
+    st.subheader(T['total_items'].format(total=total_items, current=len(page_items)))
 
-# Ensure page is valid
-if st.session_state.page > total_pages:
-    st.session_state.page = 1
+    all_counts = am.get_all_like_counts()
+    my_likes_set = set()
+    if st.session_state['user']:
+        my_likes_set = am.get_user_likes(st.session_state['user']['user_id'])
 
-# Slice Data
-start_idx = (st.session_state.page - 1) * items_per_page
-end_idx = start_idx + items_per_page
-page_items = filtered_df.iloc[start_idx:end_idx]
+    page_items = page_items.reset_index(drop=True)
 
-# --- Display Grid (Strict 3 per row) ---
-st.divider()
-st.subheader(T['total_items'].format(total=total_items, current=len(page_items)))
+    for i in range(0, items_per_page, 3):
+        batch = page_items.iloc[i:i+3]
+        if batch.empty:
+            break
 
-# Fetch Likes Data (Once per rerun)
-all_counts = am.get_all_like_counts()
-my_likes_set = set()
-if st.session_state['user']:
-    my_likes_set = am.get_user_likes(st.session_state['user']['user_id'])
+        cols = st.columns(3)
+        for idx, row in batch.iterrows():
+            col_idx = idx % 3
+            with cols[col_idx]:
+                status_val = str(row.get('stock', '')).lower().strip()
+                is_sold = 'out of stock' in status_val or 'sold' in status_val
 
-# Reset index to allow looping by integers
-page_items = page_items.reset_index(drop=True) 
+                opacity_style = "opacity: 0.5;" if is_sold else ""
+                st.markdown(f'<div style="{opacity_style} position: relative;">', unsafe_allow_html=True)
 
-# Iterate in chunks of 3
-for i in range(0, items_per_page, 3):
-    # Get current batch
-    batch = page_items.iloc[i:i+3]
-    if batch.empty:
-        break
-        
-    cols = st.columns(3)
-    for idx, row in batch.iterrows():
-        # idx is relative to batch due to default iterrows but we reset index? 
-        # Actually iterrows returns index from DataFrame. 
-        # If reset_index(drop=True) was called, idx is 0,1,2... within page_items.
-        # But iterating batch.iterrows() preserves the index from page_items.
-        
-        # We need the column index explicitly: 0,1,2
-        col_idx = idx % 3
-        with cols[col_idx]:
-            status_val = str(row.get('stock', '')).lower().strip()
-            # User specified: 'out of stock' = Sold, 'on sale' = Available
-            # We will use 'out of stock' as the strict trigger for sold status.
-            # Check if 'out of stock' is in the string to be safe against minor variations
-            is_sold = 'out of stock' in status_val or 'sold' in status_val
-            
-            # Opacity Style
-            opacity_style = "opacity: 0.5;" if is_sold else ""
-            
-            # Container start (add relative positioning context)
-            st.markdown(f'<div style="{opacity_style} position: relative;">', unsafe_allow_html=True)
-    
-            # Image Logic
-            img_url = get_image_url(row.get('image_file_id'))
-            
-            # Prepare Image HTML (Direct URL)
-            img_html = ""
-            
-            # Use Direct URL (Client-side loading)
-            if img_url:
-                # [MODIFIED] Aspect Ratio 9:8 (Top Crop)
-                # Removed server-side fetching and base64 encoding
-                img_html = f'<img src="{img_url}" style="width:100%; aspect-ratio: 9/8; object-fit: cover; object-position: top; border-radius:5px;" loading="lazy">'
-            else:
-                # [MODIFIED] Aspect Ratio 9:8 for placeholder
-                img_html = f'<div style="width:100%; aspect-ratio: 9/8; background:#f0f0f0; display:flex; align-items:center; justify-content:center; border-radius:5px;">{T["no_image"]}</div>'
-            
-            # Render Image + Overlay (Centered)
-            # Render Image + Overlay (Centered)
-            # Priority: Sold Out > Arrival Date > Normal
-            
-            # Render Image + Overlay (Centered)
-            # Priority: Sold Out > Arrival Date > Normal
-            
-            arrival_val = str(row.get('arrival_date', '')).strip()
-            # Check if arrival_date is valid (not nan/empty/nat)
-            is_arrival_valid = arrival_val and arrival_val.lower() != 'nan' and arrival_val.lower() != 'nat' and len(arrival_val) > 0
-            
-            if is_sold:
-                 # Zoom Link Wrapper
-                 # [FIX] Prioritize img_url for the link target because opening base64 in new tab is often blocked.
-                 link_target = img_url if img_url else ""
-    
-                 overlay_html = f"""
-                 <div style="position: relative; width: 100%;">
-                    <div style="opacity: 0.5;">
+                img_url = get_image_url(row.get('image_file_id'))
+                img_html = ""
+                if img_url:
+                    img_html = f'<img src="{img_url}" style="width:100%; aspect-ratio: 9/8; object-fit: cover; object-position: top; border-radius:5px;" loading="lazy">'
+                else:
+                    img_html = f'<div style="width:100%; aspect-ratio: 9/8; background:#f0f0f0; display:flex; align-items:center; justify-content:center; border-radius:5px;">{T["no_image"]}</div>'
+
+                arrival_val = str(row.get('arrival_date', '')).strip()
+                is_arrival_valid = arrival_val and arrival_val.lower() != 'nan' and arrival_val.lower() != 'nat' and len(arrival_val) > 0
+
+                if is_sold:
+                    link_target = img_url if img_url else ""
+                    overlay_html = f"""
+                    <div style="position: relative; width: 100%;">
+                        <div style="opacity: 0.5;">
+                            <a href="{link_target}" target="_blank" style="display: block; cursor: pointer;">
+                                {img_html}
+                            </a>
+                        </div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                                    color: white; font-size: 20px; font-weight: bold;
+                                    background-color: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
+                                    pointer-events: none; white-space: nowrap; z-index: 10;">
+                            {T['sold_out']}
+                        </div>
+                    </div>
+                    """
+                    st.markdown(overlay_html, unsafe_allow_html=True)
+                elif is_arrival_valid:
+                    final_val = arrival_val
+                    if arrival_val.upper() == 'TBD' or arrival_val == '미정':
+                        final_val = T['arrival_tbd']
+                    display_text = f"{T['arrival_title']} : {final_val}"
+                    link_target = img_url if img_url else ""
+                    overlay_html = f"""
+                    <div style="position: relative; width: 100%;">
                         <a href="{link_target}" target="_blank" style="display: block; cursor: pointer;">
                             {img_html}
                         </a>
+                        <div style="position: absolute; bottom: 10px; left: 0; width: 100%;
+                                    color: white; font-size: 20px; font-weight: bold;
+                                    background-color: rgba(0,0,0,0.6); padding: 5px 0;
+                                    pointer-events: none; z-index: 10; text-align: center;">
+                            {display_text}
+                        </div>
                     </div>
-                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                                color: white; font-size: 20px; font-weight: bold; 
-                                background-color: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
-                                pointer-events: none; white-space: nowrap; z-index: 10;">
-                        {T['sold_out']}
-                    </div>
-                 </div>
-                 """
-                 st.markdown(overlay_html, unsafe_allow_html=True)
-            elif is_arrival_valid:
-                 # Arrival Date Overlay
-                 # Text: "{T['arrival_title']} : {arrival_date}"
-                 # Handling "TBD" / "미정" explicitly
-                 
-                 final_val = arrival_val
-                 if arrival_val.upper() == 'TBD' or arrival_val == '미정':
-                     final_val = T['arrival_tbd']
-                     
-                 display_text = f"{T['arrival_title']} : {final_val}"
-                 
-                 # [FIX] Prioritize img_url for the link
-                 link_target = img_url if img_url else ""
-                     
-                 # [MODIFIED] No Opacity. Text at bottom. Font 20px.
-                 # Added <a> wrapper for Zoom.
-                 
-                 overlay_html = f"""
-                 <div style="position: relative; width: 100%;">
-                     <a href="{link_target}" target="_blank" style="display: block; cursor: pointer;">
-                         {img_html}
-                     </a>
-                     <div style="position: absolute; bottom: 10px; left: 0; width: 100%;
-                                 color: white; font-size: 20px; font-weight: bold; 
-                                 background-color: rgba(0,0,0,0.6); padding: 5px 0; 
-                                 pointer-events: none; z-index: 10; text-align: center;">
-                         {display_text}
-                     </div>
-                 </div>
-                 """
-                 st.markdown(overlay_html, unsafe_allow_html=True)
-            else:
-                 # Normal Image - Add Zoom
-                 # [FIX] Prioritize img_url
-                 link_target = img_url if img_url else ""
-                     
-                 if link_target:
-                     st.markdown(f'<a href="{link_target}" target="_blank" style="display:block; cursor:pointer;">{img_html}</a>', unsafe_allow_html=True)
-                 else:
-                     st.markdown(f"<div>{img_html}</div>", unsafe_allow_html=True)
-      
-            # Info
-            code = row.get('code', '-')
-            brand = row.get('brand', 'Unknown')
-            name = row.get('name', 'No Name')
-            price_val = row.get('price', 0)
-            
-            # Price & Display Logic
-            price_plain = f"{T['currency_symbol']}{price_val:,}" # Plain text for message
-            
-            if is_sold:
-                price_display = f"<span style='color:#999; text-decoration:line-through; font-size:16px;'>{T['sold_out']}</span>"
-                price_str = price_plain 
-            else:
-                # Blue Color (#007bff), Larger Font (+2 -> approx 18px ~ 20px)
-                price_display = f"<span style='color:#007bff; font-weight:bold; font-size:20px;'>{price_plain}</span>"
-                price_str = price_plain
-            
-            size = row.get('size', '-')
-            condition = row.get('condition', '-')
-            
-            # Title & Price
-            st.markdown(f"<div class='product-title'>[{brand}] {name}</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='product-price'>{price_display}</div>", unsafe_allow_html=True)
-    
-            # [Restored] st.button for "No Refresh" (Soft Rerun) UX
-            # Mobile Layout: Use columns with ratio favoring text
-            # To minimize wrapping, we use [7, 3] or [3, 1]
-            m_col1, m_col2 = st.columns([7, 3])
-            
-            with m_col1:
-                # Text Info
-                # Use small font and nowrap to fit as much as possible
-                st.markdown(f"""
-                <div style="font-size: 13px; color: #666; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    Code : {code} | {T['size']} : {size} | Cond : {condition}
-                </div>
-                """, unsafe_allow_html=True)
+                    """
+                    st.markdown(overlay_html, unsafe_allow_html=True)
+                else:
+                    link_target = img_url if img_url else ""
+                    if link_target:
+                        st.markdown(f'<a href="{link_target}" target="_blank" style="display:block; cursor:pointer;">{img_html}</a>', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<div>{img_html}</div>", unsafe_allow_html=True)
 
-                # [NEW] Measured Size
-                measured = row.get('measured_size', '-')
-                if measured and str(measured).lower() != 'nan' and str(measured).strip() != '':
-                     st.markdown(f"""
+                code = row.get('code', '-')
+                brand = row.get('brand', 'Unknown')
+                name = row.get('name', 'No Name')
+                price_val = row.get('price', 0)
+                price_plain = f"{T['currency_symbol']}{price_val:,}"
+
+                if is_sold:
+                    price_display = f"<span style='color:#999; text-decoration:line-through; font-size:16px;'>{T['sold_out']}</span>"
+                    price_str = price_plain
+                else:
+                    price_display = f"<span style='color:#007bff; font-weight:bold; font-size:20px;'>{price_plain}</span>"
+                    price_str = price_plain
+
+                size = row.get('size', '-')
+                condition = row.get('condition', '-')
+
+                st.markdown(f"<div class='product-title'>[{brand}] {name}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='product-price'>{price_display}</div>", unsafe_allow_html=True)
+
+                m_col1, m_col2 = st.columns([7, 3])
+                with m_col1:
+                    st.markdown(f"""
+                    <div style="font-size: 13px; color: #666; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        Code : {code} | {T['size']} : {size} | Cond : {condition}
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    measured = row.get('measured_size', '-')
+                    if measured and str(measured).lower() != 'nan' and str(measured).strip() != '':
+                        st.markdown(f"""
                         <div style="font-size: 15px; color: #333; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold;">
                             {T['measured_size']} : {measured}
                         </div>
                         """, unsafe_allow_html=True)
-                
-            with m_col2:
-                # Wishlist Button
-                p_code = str(code)
-                likes_num = all_counts.get(p_code, 0)
-                
-                # Determine button label
-                if st.session_state.get('user'):
-                    is_liked = p_code in my_likes_set
-                    heart_icon = "❤️" if is_liked else "🤍"
-                    # Unique key for button
-                    if st.button(f"{heart_icon} {likes_num}", key=f"like_{p_code}", help="Add to Wishlist"):
-                         result = am.toggle_like(st.session_state['user']['user_id'], p_code)
-                         st.rerun()
-                else:
-                     if st.button(f"🤍 {likes_num}", key=f"like_{p_code}"):
-                         st.toast(T['login_required'], icon="🔒")
-            
-            st.markdown('</div>', unsafe_allow_html=True) # End opacity div
-            
-            # Detail Expander
-            with st.expander(T['detail_btn']):
-                st.write(T['desc_title'])
-                # Robust Description logic
-                desc_text = row.get('description')
-                if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
-                    desc_text = row.get('product description') # Try full name
-                if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
-                    desc_text = row.get('detail') # Try detail
-                if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
-                     desc_text = '-'
-                     
-                st.write(desc_text)
-                st.write(f"---")
-                st.write(f"{T['date_title']}: {row.get('updated_at', '-')}")
-                
-                if not is_sold:
-                    # Line Contact Logic: Only for Logged-in Users
-                    if st.session_state['user']:
-                        # Get User Info
-                        u_id = st.session_state['user']['user_id']
-                        u_name = st.session_state['user'].get('name', 'Unknown')
-                        
-                        # Format Message with User Info
-                        contact_text = T['contact_msg'].format(
-                            code=code, brand=brand, name=name, price=price_str,
-                            user_id=u_id, user_name=u_name
-                        )
-                        
-                        # Encode message for URL
-                        import urllib.parse
-                        encoded_msg = urllib.parse.quote(contact_text)
-                        
-                        # Use Official Account Auto-Fill Link
-                        LINE_ID = "@102ipvys"
-                        line_url = f"https://line.me/R/oaMessage/{LINE_ID}/?{encoded_msg}"
-                        
-                        # Line Button (Link)
-                        st.markdown(f"""
-                        <a href="{line_url}" target="_blank" style="text-decoration:none;">
-                            <button style="width:100%; background-color:#06C755; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
-                                {T['line_btn']}
-                            </button>
-                        </a>
-                        <div style="height: 30px;"></div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        # Guest: Show Button that triggers Alert
-                        # Use logic to show st.error when clicked
-                        # st.button returns True on click
-                        if st.button(T['line_btn'], key=f"guest_line_{code}"):
-                            st.toast(T['login_required'], icon="🔒")
-                            st.error(T['login_required'])
-                            
-                        # Spacing for consistency
-                        st.markdown('<div style="height: 30px;"></div>', unsafe_allow_html=True)
-                        
-                else:
-                     # Sold out button (disabled) or just message
-                     st.error(T['sold_btn'])
-    
-            st.markdown("---")
 
-# --- Pagination Controls ---
-if total_pages > 1:
-    # Reduced spacing: remove <br> and user smaller margin
-    st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-    # st.divider() # Removed as requested
-    
-    # Center Pagination
-    
-    # Calculate visible page range (1-8, 9-16, etc.)
-    current_page = st.session_state.page
-    chunk_size = 8
-    start_page = ((current_page - 1) // chunk_size) * chunk_size + 1
-    end_page = min(start_page + chunk_size - 1, total_pages)
-    
-    # Construct options with navigation arrows
-    page_options = []
-    if start_page > 1:
-        page_options.append("◀")
-    
-    page_options.extend(range(start_page, end_page + 1))
-    
-    if end_page < total_pages:
-        page_options.append("▶")
-    
-    # [CSS] Unified Styling for Pagination (Numbers & Arrows)
-    st.markdown("""
-    <style>
-        /* Center the Radio Widget Container */
-        div[data-testid="stRadio"] {
-            display: flex !important;
-            justify-content: center !important; /* Center alignment */
-            align-items: center !important;
-            width: 100% !important;
-        }
-        /* Target the radio group specifically */
-        div[data-testid="stRadio"] div[role="radiogroup"] {
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-            flex-wrap: nowrap !important;
-            margin: 0 auto !important;
-            width: fit-content !important;
-        }
-        /* Mobile Optimization: Hide Radio Circles */
-        div[data-testid="stRadio"] label > div:first-child {
-            display: none !important;
-        }
-        /* Style Labels (Numbers and Arrows) */
-        div[data-testid="stRadio"] label {
-            margin-right: 0px !important;
-            padding: 0 5px !important;
-            border: none !important;
-            background-color: transparent !important;
-            cursor: pointer !important;
-            min-width: 25px; /* Minimum width for easier clicking */
-            text-align: center;
-        }
-        div[data-testid="stRadio"] label:hover {
-            background-color: transparent !important;
-            text-decoration: underline;
-            color: #ff4b4b; /* Highlight color */
-        }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Unified Radio Button
-    # We need to determine the index of the CURRENT page in our mixed list
-    try:
-        current_index = page_options.index(current_page)
-    except ValueError:
-        current_index = 0 # Fallback, though logic guarantees presence
-        
-    # Use 3 columns to center alignment structurally as requested
-    # [Left Spacer] [Pagination (Center)] [Right Spacer]
-    # Using [1, 1, 1] for perfect symmetry
-    col_left, col_center, col_right = st.columns([1, 1, 1])
-    
-    with col_center:
-        selected_p = st.radio(
-            "Go to page:", 
-            options=page_options,
-            index=current_index,
-            horizontal=True,
-            label_visibility="collapsed",
-            key=f"pagination_unified_{start_page}" # Unique key per chunk
-        )
-    
-    # Handle Selection Logic
-    if selected_p == "◀":
-        st.session_state.page = start_page - 1
-        st.rerun()
-    elif selected_p == "▶":
-        st.session_state.page = end_page + 1
-        st.rerun()
-    elif selected_p != st.session_state.page:
-        st.session_state.page = selected_p
-        st.rerun()
-             
-    st.markdown(f"<div style='text-align: center; color: #666; margin-top: 5px;'>Page {st.session_state.page} / {total_pages}</div>", unsafe_allow_html=True)
+                with m_col2:
+                    p_code = str(code)
+                    likes_num = all_counts.get(p_code, 0)
+                    if st.session_state.get('user'):
+                        is_liked = p_code in my_likes_set
+                        heart_icon = "❤️" if is_liked else "🤍"
+                        if st.button(f"{heart_icon} {likes_num}", key=f"like_{p_code}", help="Add to Wishlist"):
+                            am.toggle_like(st.session_state['user']['user_id'], p_code)
+                            st.rerun()
+                    else:
+                        if st.button(f"🤍 {likes_num}", key=f"like_{p_code}"):
+                            st.toast(T['login_required'], icon="🔒")
+
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                with st.expander(T['detail_btn']):
+                    st.write(T['desc_title'])
+                    desc_text = row.get('description')
+                    if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
+                        desc_text = row.get('product description')
+                    if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
+                        desc_text = row.get('detail')
+                    if not desc_text or str(desc_text).strip() == '-' or str(desc_text).strip() == '':
+                        desc_text = '-'
+                    st.write(desc_text)
+                    st.write(f"---")
+                    st.write(f"{T['date_title']}: {row.get('updated_at', '-')}")
+
+                    if not is_sold:
+                        if st.session_state['user']:
+                            u_id = st.session_state['user']['user_id']
+                            u_name = st.session_state['user'].get('name', 'Unknown')
+                            contact_text = T['contact_msg'].format(
+                                code=code, brand=brand, name=name, price=price_str,
+                                user_id=u_id, user_name=u_name
+                            )
+                            import urllib.parse
+                            encoded_msg = urllib.parse.quote(contact_text)
+                            LINE_ID = "@102ipvys"
+                            line_url = f"https://line.me/R/oaMessage/{LINE_ID}/?{encoded_msg}"
+                            st.markdown(f"""
+                            <a href="{line_url}" target="_blank" style="text-decoration:none;">
+                                <button style="width:100%; background-color:#06C755; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                                    {T['line_btn']}
+                                </button>
+                            </a>
+                            <div style="height: 30px;"></div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            if st.button(T['line_btn'], key=f"guest_line_{code}"):
+                                st.toast(T['login_required'], icon="🔒")
+                                st.error(T['login_required'])
+                            st.markdown('<div style="height: 30px;"></div>', unsafe_allow_html=True)
+                    else:
+                        st.error(T['sold_btn'])
+
+                st.markdown("---")
+
+    # --- Pagination Controls ---
+    if total_pages > 1:
+        st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+
+        current_page = st.session_state.page
+        chunk_size = 8
+        start_page = ((current_page - 1) // chunk_size) * chunk_size + 1
+        end_page = min(start_page + chunk_size - 1, total_pages)
+
+        page_options = []
+        if start_page > 1:
+            page_options.append("◀")
+        page_options.extend(range(start_page, end_page + 1))
+        if end_page < total_pages:
+            page_options.append("▶")
+
+        st.markdown("""
+        <style>
+            div[data-testid="stRadio"] {
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                width: 100% !important;
+            }
+            div[data-testid="stRadio"] div[role="radiogroup"] {
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                flex-wrap: nowrap !important;
+                margin: 0 auto !important;
+                width: fit-content !important;
+            }
+            div[data-testid="stRadio"] label > div:first-child {
+                display: none !important;
+            }
+            div[data-testid="stRadio"] label {
+                margin-right: 0px !important;
+                padding: 0 5px !important;
+                border: none !important;
+                background-color: transparent !important;
+                cursor: pointer !important;
+                min-width: 25px;
+                text-align: center;
+            }
+            div[data-testid="stRadio"] label:hover {
+                background-color: transparent !important;
+                text-decoration: underline;
+                color: #ff4b4b;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
+        try:
+            current_index = page_options.index(current_page)
+        except ValueError:
+            current_index = 0
+
+        col_left, col_center, col_right = st.columns([1, 1, 1])
+        with col_center:
+            selected_p = st.radio(
+                "Go to page:",
+                options=page_options,
+                index=current_index,
+                horizontal=True,
+                label_visibility="collapsed",
+                key=f"pagination_unified_{start_page}"
+            )
+
+        if selected_p == "◀":
+            st.session_state.page = start_page - 1
+            st.rerun()
+        elif selected_p == "▶":
+            st.session_state.page = end_page + 1
+            st.rerun()
+        elif selected_p != st.session_state.page:
+            st.session_state.page = selected_p
+            st.rerun()
+
+        st.markdown(f"<div style='text-align: center; color: #666; margin-top: 5px;'>Page {st.session_state.page} / {total_pages}</div>", unsafe_allow_html=True)
+
+
