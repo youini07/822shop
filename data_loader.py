@@ -74,6 +74,7 @@ def load_data():
             '사이즈': 'size',
             '컨디션': 'condition',
             '판매가': 'price',
+            '출고가': 'original_price',   # T열: 원래 출고가 (할인율 계산용)
             '제품설명': 'description',
             '이미지': 'image_file_id',
             '상태': 'stock',
@@ -81,6 +82,7 @@ def load_data():
             '도착예정일': 'arrival_date', 'eta': 'arrival_date', 'ETA': 'arrival_date',
             '실측사이즈': 'measured_size'
         }
+
         
         # Normalize headers (strip whitespace)
         df.columns = [str(c).strip() for c in df.columns]
@@ -173,6 +175,18 @@ def load_data():
                 .str.replace(r'[^\d]', '', regex=True) # Keep only digits
             )
             df['price'] = pd.to_numeric(df['price'], errors='coerce').fillna(0).astype(int)
+
+        # 출고가도 numeric 변환. 빈 값은 NaN으로 유지 (할인율 미표기를 위해 fillna 안 씀)
+        if 'original_price' in df.columns:
+            df['original_price'] = (
+                df['original_price']
+                .astype(str)
+                .str.replace(r'[^\d]', '', regex=True)
+            )
+            df['original_price'] = pd.to_numeric(df['original_price'], errors='coerce')
+            # 0이면 의미 없으므로 NaN 처리
+            df.loc[df['original_price'] == 0, 'original_price'] = float('nan')
+
             
         # Attach Metadata: Source Sheet Name
         if target_sheet:

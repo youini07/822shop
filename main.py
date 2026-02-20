@@ -783,6 +783,88 @@ if st.session_state['user'] and st.session_state['user']['user_id'] == 'youini07
 if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
     sort_option = st.selectbox(T['sort'], T['sort_options'])
 
+    # ─── 인기 브랜드 Top 10 바 ───────────────────────────────────────────────
+    # 브랜드 컬럼에서 갯수 내림차순으로 10개 추출
+    if 'brand' in df.columns and not df.empty:
+        top_brands = (
+            df['brand']
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .replace('', float('nan'))
+            .dropna()
+        )
+        top_brands = top_brands[top_brands != 'Unknown']
+        top_brands = top_brands.value_counts().head(10).index.tolist()
+
+        if top_brands:
+            st.markdown("""
+            <style>
+            .brand-bar-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 12px;
+                padding: 10px 4px 4px 4px;
+            }
+            .brand-pill {
+                display: inline-block;
+                background: #f0f0f0;
+                border: 1.5px solid #ddd;
+                border-radius: 20px;
+                padding: 5px 14px;
+                font-size: 13px;
+                font-weight: 700;
+                color: #222;
+                cursor: pointer;
+                transition: all 0.15s;
+            }
+            .brand-pill:hover {
+                background: #222;
+                color: #fff;
+                border-color: #222;
+            }
+            .brand-pill-active {
+                background: #1a1a2e;
+                color: #fff !important;
+                border-color: #1a1a2e;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            # 브랜드 라벨
+            _brand_bar_label = {'KO': '🔥 인기 브랜드', 'EN': '🔥 Popular Brands', 'TH': '🔥 แบรนด์ยอดนิยม'}.get(lang_code, '🔥 Popular Brands')
+            st.markdown(f"<div style='font-size:13px; font-weight:700; color:#888; margin-bottom:4px;'>{_brand_bar_label}</div>", unsafe_allow_html=True)
+
+            # 버튼 한 줄 배치 (st.button을 columns로 나열)
+            # 최대 10개이므로 한 줄에 5개씩 2줄로 나눔
+            _chunk_size = 5
+            for _row_start in range(0, len(top_brands), _chunk_size):
+                _row_brands = top_brands[_row_start:_row_start + _chunk_size]
+                _bcols = st.columns(len(_row_brands))
+                for _bi, _bname in enumerate(_row_brands):
+                    with _bcols[_bi]:
+                        # 현재 선택된 브랜드면 primary 타입으로 강조
+                        _is_active = _bname in st.session_state.get('selected_brands_bar', [])
+                        _btn_type = "primary" if _is_active else "secondary"
+                        if st.button(_bname, key=f"brand_bar_{_bname}", type=_btn_type, use_container_width=True):
+                            # 토글: 이미 선택돼있으면 해제, 아니면 활성화
+                            if _bname in st.session_state.get('selected_brands_bar', []):
+                                st.session_state['selected_brands_bar'] = []
+                            else:
+                                st.session_state['selected_brands_bar'] = [_bname]
+                            st.rerun()
+
+            # 브랜드 바 선택값을 기존 사이드바 브랜드 필터에 반영
+            # (사이드바 필터가 없으면 브랜드 바 값 사용, 둘 다 있으면 OR 합집합)
+            _bar_selected = st.session_state.get('selected_brands_bar', [])
+            if _bar_selected and not selected_brands:
+                # 사이드바 필터 없고 브랜드 바만 있는 경우
+                selected_brands = _bar_selected
+            elif _bar_selected and selected_brands:
+                # 둘 다 선택 시 교집합(AND) 적용
+                selected_brands = list(set(selected_brands) & set(_bar_selected)) or _bar_selected
+
     # ─── 카탈로그 필터링 / 정렬 / 그리드 ───────────────────────────────────
     # 소개 페이지일 때는 이 블록 전체가 실행되지 않음
     filtered_df = df.copy()
@@ -928,8 +1010,28 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                 arrival_val = str(row.get('arrival_date', '')).strip()
                 is_arrival_valid = arrival_val and arrival_val.lower() != 'nan' and arrival_val.lower() != 'nat' and len(arrival_val) > 0
 
+                # ─── 가격 / 할인율 계산 (이미지 오버레이보다 먼저 계산) ─────────────
+                import math
+                price_val = row.get('price', 0)
+                price_plain = f"{T['currency_symbol']}{price_val:,}"  # type: ignore
+
+                _orig_price = row.get('original_price', float('nan'))
+                try:
+                    _orig_price = float(_orig_price)
+                    _has_discount = not math.isnan(_orig_price) and _orig_price > 0 and _orig_price > price_val
+                except (TypeError, ValueError):
+                    _has_discount = False
+
+
+                if _has_discount:
+                    _discount_pct = round((1 - price_val / _orig_price) * 100)
+                    _discount_badge = f'<div style="position:absolute; top:8px; right:8px; background:rgba(30,30,30,0.82); color:#fff; font-size:14px; font-weight:900; border-radius:6px; padding:4px 9px; z-index:20; letter-spacing:0.5px;">{_discount_pct}%</div>'
+                else:
+                    _discount_badge = ''
+
+                link_target = img_url if img_url else ""
+
                 if is_sold:
-                    link_target = img_url if img_url else ""
                     overlay_html = f"""
                     <div style="position: relative; width: 100%;">
                         <div style="opacity: 0.5;">
@@ -943,6 +1045,7 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                                     pointer-events: none; white-space: nowrap; z-index: 10;">
                             {T['sold_out']}
                         </div>
+                        {_discount_badge}
                     </div>
                     """
                     st.markdown(overlay_html, unsafe_allow_html=True)
@@ -951,7 +1054,6 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                     if arrival_val.upper() == 'TBD' or arrival_val == '미정':
                         final_val = T['arrival_tbd']
                     display_text = f"{T['arrival_title']} : {final_val}"
-                    link_target = img_url if img_url else ""
                     overlay_html = f"""
                     <div style="position: relative; width: 100%;">
                         <a href="{link_target}" target="_blank" style="display: block; cursor: pointer;">
@@ -963,24 +1065,38 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                                     pointer-events: none; z-index: 10; text-align: center;">
                             {display_text}
                         </div>
+                        {_discount_badge}
                     </div>
                     """
                     st.markdown(overlay_html, unsafe_allow_html=True)
                 else:
-                    link_target = img_url if img_url else ""
                     if link_target:
-                        st.markdown(f'<a href="{link_target}" target="_blank" style="display:block; cursor:pointer;">{img_html}</a>', unsafe_allow_html=True)
+                        overlay_html = f"""
+                        <div style="position: relative; width: 100%;">
+                            <a href="{link_target}" target="_blank" style="display:block; cursor:pointer;">{img_html}</a>
+                            {_discount_badge}
+                        </div>
+                        """
+                        st.markdown(overlay_html, unsafe_allow_html=True)
                     else:
                         st.markdown(f"<div>{img_html}</div>", unsafe_allow_html=True)
 
                 code = row.get('code', '-')
                 brand = row.get('brand', 'Unknown')
                 name = row.get('name', 'No Name')
-                price_val = row.get('price', 0)
-                price_plain = f"{T['currency_symbol']}{price_val:,}"
+                # price_val, price_plain은 이미 위 할인율 계산 블록에서 정의됨
 
+                # ─── 가격 표시: 출고가 취소선 + 판매가 파란색 ───────────────────
                 if is_sold:
                     price_display = f"<span style='color:#999; text-decoration:line-through; font-size:16px;'>{T['sold_out']}</span>"
+                    price_str = price_plain
+                elif _has_discount:
+                    # 출고가(취소선 회색) + 판매가(파란색 굵게)
+                    _orig_plain = f"{T['currency_symbol']}{int(_orig_price):,}"
+                    price_display = (
+                        f"<span style='color:#aaa; text-decoration:line-through; font-size:14px; margin-right:5px;'>{_orig_plain}</span>"
+                        f"<span style='color:#007bff; font-weight:900; font-size:20px;'>{price_plain}</span>"
+                    )
                     price_str = price_plain
                 else:
                     price_display = f"<span style='color:#007bff; font-weight:bold; font-size:20px;'>{price_plain}</span>"
