@@ -815,45 +815,54 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                 'TH': '🔥 แบรนด์ยอดนิยม'
             }.get(lang_code, '🔥 Popular Brands')
 
-            # HTML 텍스트 빌드 (onclick JS로 현재창에서 URL 파라미터 변경)
-            # → window.parent.location은 Streamlit iframe의 부모(실제 브라우저 탭)를 참조
-            _brand_links_html = []
+            # ── st.components.v1.html 로 렌더 ──────────────────────────────
+            # st.markdown 내부 js는 샌드박스 iframe에 갇혀 실제 URL 변경 불가
+            # components.v1.html은 별도 iframe 이지만 window.top으로 최상위 창 접근 가능
+            import streamlit.components.v1 as components_v1
+            import urllib.parse
+
+            _brand_spans = []
             for _bname in top_brands:
                 _is_active = _bname in _bar_selected
-                import urllib.parse
-                _encoded = urllib.parse.quote(_bname)
-                # 선택된 브랜드 다시 클릭 → ?bb= (해제), 미선택 → ?bb=브랜드명
-                _target_param = "" if _is_active else f"bb={_encoded}"
-                # onclick: 현재 URL의 search를 교체하여 새 탭 없이 현재 창에서 리로드
+                _encoded = urllib.parse.quote(_bname, safe='')
+                # 선택 → bb="" (해제), 미선택 → bb=브랜드명
+                _bb_val = "" if _is_active else _bname.replace("'", "\\'")
+                # window.top.location: 실제 브라우저 탭의 URL을 변경 → Streamlit rerun 발생
                 _js = (
-                    f"var u=new URLSearchParams(window.location.search);"
-                    f"u.set('bb','{'' if _is_active else _bname}');"
-                    f"window.location.search=u.toString();"
+                    f"var u=new URLSearchParams(window.top.location.search);"
+                    f"u.set('bb','{_bb_val}');"
+                    f"window.top.location.search=u.toString();"
                 )
-                _color = "#e63946" if _is_active else "inherit"
-                _decoration = "underline" if _is_active else "none"
-                _weight = "900" if _is_active else "800"
-                _brand_links_html.append(
+                _color = "#e63946" if _is_active else "#dddddd"
+                _weight = "900" if _is_active else "700"
+                _underline = "underline" if _is_active else "none"
+                _span = (
                     f'<span onclick="{_js}" style="'
-                    f'color:{_color}; '
-                    f'text-decoration:{_decoration}; '
-                    f'font-weight:{_weight}; '
-                    f'font-size:17px; '
-                    f'letter-spacing:0.02em; '
-                    f'font-family:inherit; '
+                    f'color:{_color};'
+                    f'font-weight:{_weight};'
+                    f'text-decoration:{_underline};'
+                    f'font-size:17px;'
+                    f'letter-spacing:0.03em;'
                     f'cursor:pointer;'
+                    f'user-select:none;'
+                    f'transition:color 0.15s;'
                     f'">{_bname}</span>'
                 )
+                _brand_spans.append(_span)
 
-            # 구분자 |로 join
-            _brands_row = '  <span style="color:#555; font-size:16px; margin:0 3px; user-select:none;">|</span>  '.join(_brand_links_html)
+            _sep = '<span style="color:#444;font-size:15px;margin:0 5px;user-select:none;">|</span>'
+            _brands_html = _sep.join(_brand_spans)
 
-            st.markdown(f"""
-            <div style="margin-bottom: 12px; padding: 4px 0;">
-                <div style="font-size:11px; font-weight:700; color:#888; letter-spacing:0.08em; margin-bottom:6px; text-transform:uppercase;">{_brand_bar_label}</div>
-                <div style="line-height:2.2; flex-wrap:wrap;">{_brands_row}</div>
+            _bar_html = f"""
+            <div style="font-family:inherit; padding:4px 0 10px 0;">
+                <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:0.1em;margin-bottom:6px;text-transform:uppercase;">{_brand_bar_label}</div>
+                <div style="line-height:2.4;flex-wrap:wrap;">{_brands_html}</div>
             </div>
-            """, unsafe_allow_html=True)
+            """
+            # height: 브랜드 수에 따라 동적으로 조정 (10개 기준 약 70px)
+            _bar_height = 70 if len(top_brands) <= 10 else 110
+            components_v1.html(_bar_html, height=_bar_height, scrolling=False)
+
 
 
             # 브랜드 바 선택값을 기존 사이드바 브랜드 필터에 반영
