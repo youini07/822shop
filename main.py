@@ -902,51 +902,26 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                 unsafe_allow_html=True
             )
 
-            # 3. 버튼 배치 (구분자 포함하여 컬럼 나누기)
-            # n개 브랜드 -> 2n-1개 컬럼 (브랜드, 구분자, 브랜드, 구분자...)
-            # 비율: 브랜드(auto) 구분자(작게)
-            # Streamlit 컬럼 비율은 list로 전달
-            _col_specs = []
-            for _i in range(len(top_brands)):
-                _col_specs.append(1) # 브랜드
-                if _i < len(top_brands) - 1:
-                    _col_specs.append(0.05) # 구분자
+            # 3. 버튼 배치 (3열 그리드)
+            # 한 줄에 3개씩 배치. 논리적 순서 유지를 위해 매 행(Row)마다 컬럼 생성
+            for _r_idx in range(0, len(top_brands), 3):
+                _row_brands = top_brands[_r_idx : _r_idx + 3]
+                _cols = st.columns(3)
+                
+                for _c_idx, _bname in enumerate(_row_brands):
+                    with _cols[_c_idx]:
+                        _is_active = _bname in _bar_selected
+                        # 버튼 라벨: \u200b + 브랜드명 + (\u200d if active)
+                        _label = f"\u200b{_bname}" + ("\u200d" if _is_active else "")
+                        
+                        if st.button(_label, key=f"btn_brand_{_bname}", use_container_width=True):
+                            # 토글 로직
+                            if _bname in st.session_state.get('selected_brands_bar', []):
+                                st.session_state['selected_brands_bar'] = []
+                            else:
+                                st.session_state['selected_brands_bar'] = [_bname]
+                            st.rerun()
 
-            _cols = st.columns(_col_specs)
-            
-            for _i, _bname in enumerate(top_brands):
-                _idx_col = _i * 2
-                with _cols[_idx_col]:
-                    _is_active = _bname in _bar_selected
-                    # 버튼 생성 (\u200b 포함)
-                    # 선택된 경우 빨간색 스타일을 위해 JS가 아닌 Python 로직 필요하지만
-                    # st.button 자체 스타일 한계로 CSS 클래스 주입 방식 사용
-                    # 활성 상태면 CSS에서 색상 처리를 위해 별도 마킹이 필요하나,
-                    # 단순하게 선택 상태면 ★ 같은 마커를 붙이거나 색상을 다르게? 
-                    # -> JS가 텍스트 내용을 보고 active 클래스 추가하도록 텍스트 변형
-                    
-                    # 선택된 경우 텍스트 뒤에 또다른 식별자(Zero Width Joiner \u200d) 추가하여 JS가 인식하게 함
-                    _label = f"\u200b{_bname}" + ("\u200d" if _is_active else "")
-                    
-                    if st.button(_label, key=f"btn_brand_{_bname}", use_container_width=True):
-                        # 토글 로직
-                        if _bname in st.session_state.get('selected_brands_bar', []):
-                            st.session_state['selected_brands_bar'] = []
-                        else:
-                            st.session_state['selected_brands_bar'] = [_bname]
-                        st.rerun()
-
-                    # 선택된 버튼이면 JS로 active 클래스 추가 ( script 재활용 )
-                    if _is_active:
-                         # 이 부분은 위의 JS가 \u200d 를 감지해서 처리하도록 함
-                         pass
-
-                # 구분자
-                if _i < len(top_brands) - 1:
-                    _idx_sep = _i * 2 + 1
-                    with _cols[_idx_sep]:
-                         st.markdown("<div style='text-align:center;color:#ccc;line-height:2.0;font-size:14px;user-select:none;'>|</div>", unsafe_allow_html=True)
-            
             # JS 업데이트: \u200d가 있으면 active 클래스 추가
             _js_active_script = """
             <script>
