@@ -516,7 +516,13 @@ cookie_manager = stx.CookieManager(key="cookie_manager")
 if 'user' not in st.session_state:
     st.session_state['user'] = None
 
-am = AuthManager()
+# am = AuthManager()  <-- Rate Limit 이슈로 캐싱 적용
+from auth_manager import get_auth_manager
+try:
+    am = get_auth_manager()
+except Exception as e:
+    st.error(f"인증 시스템 초기화 오류: {e}")
+    am = None
 
 # [Auto-Login Logic] Check Cookie on App Start
 if not st.session_state['user']:
