@@ -419,8 +419,13 @@ if st.session_state.get('sidebar_page', 'catalog') == 'about':
         _arrivals = []
 
     # ── 선박 트래커: 현재 언어(lang_code) 전달 ──
-    _tracker_html = get_ship_tracker_html(arrival_dates=_arrivals, lang=lang_code)
+    # [방어 코드] ship_tracker_web.py 구버전(lang 파라미터 없음) 배포 시에도 크래시 없이 동작
+    try:
+        _tracker_html = get_ship_tracker_html(arrival_dates=_arrivals, lang=lang_code)
+    except TypeError:
+        _tracker_html = get_ship_tracker_html(arrival_dates=_arrivals)
     components.html(_tracker_html, height=290, scrolling=False)
+
 
     st.markdown("---")
 
