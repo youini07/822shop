@@ -815,42 +815,46 @@ if st.session_state.get('sidebar_page', 'catalog') == 'catalog':
                 'TH': '🔥 แบรนด์ยอดนิยม'
             }.get(lang_code, '🔥 Popular Brands')
 
-            # HTML 텍스트 링크 빌드
-            # 선택된 브랜드: 빨간색/밑줄, 미선택: 흰색/회색
-            # 클릭 시 ?bb=브랜드명 , 이미 선택된 것 클릭 시 ?bb= (해제)
+            # HTML 텍스트 빌드 (onclick JS로 현재창에서 URL 파라미터 변경)
+            # → window.parent.location은 Streamlit iframe의 부모(실제 브라우저 탭)를 참조
             _brand_links_html = []
             for _bname in top_brands:
                 _is_active = _bname in _bar_selected
-                # URL 인코딩 (브랜드 이름에 공백 등 포함 가능)
                 import urllib.parse
                 _encoded = urllib.parse.quote(_bname)
-                # 이미 선택된 브랜드 클릭 시 해제 (?bb= 로 비움)
-                _href = f"?bb=" if _is_active else f"?bb={_encoded}"
+                # 선택된 브랜드 다시 클릭 → ?bb= (해제), 미선택 → ?bb=브랜드명
+                _target_param = "" if _is_active else f"bb={_encoded}"
+                # onclick: 현재 URL의 search를 교체하여 새 탭 없이 현재 창에서 리로드
+                _js = (
+                    f"var u=new URLSearchParams(window.location.search);"
+                    f"u.set('bb','{'' if _is_active else _bname}');"
+                    f"window.location.search=u.toString();"
+                )
                 _color = "#e63946" if _is_active else "inherit"
                 _decoration = "underline" if _is_active else "none"
                 _weight = "900" if _is_active else "800"
                 _brand_links_html.append(
-                    f'<a href="{_href}" style="'
+                    f'<span onclick="{_js}" style="'
                     f'color:{_color}; '
                     f'text-decoration:{_decoration}; '
                     f'font-weight:{_weight}; '
-                    f'font-size:13px; '
-                    f'letter-spacing:0.03em; '
-                    f'text-transform:uppercase; '
+                    f'font-size:17px; '
+                    f'letter-spacing:0.02em; '
                     f'font-family:inherit; '
                     f'cursor:pointer;'
-                    f'">{_bname}</a>'
+                    f'">{_bname}</span>'
                 )
 
             # 구분자 |로 join
-            _brands_row = ' <span style="color:#555; font-size:13px; margin:0 2px;">|</span> '.join(_brand_links_html)
+            _brands_row = '  <span style="color:#555; font-size:16px; margin:0 3px; user-select:none;">|</span>  '.join(_brand_links_html)
 
             st.markdown(f"""
-            <div style="margin-bottom: 10px;">
-                <div style="font-size:11px; font-weight:700; color:#888; letter-spacing:0.08em; margin-bottom:5px; text-transform:uppercase;">{_brand_bar_label}</div>
-                <div style="line-height:2; flex-wrap:wrap;">{_brands_row}</div>
+            <div style="margin-bottom: 12px; padding: 4px 0;">
+                <div style="font-size:11px; font-weight:700; color:#888; letter-spacing:0.08em; margin-bottom:6px; text-transform:uppercase;">{_brand_bar_label}</div>
+                <div style="line-height:2.2; flex-wrap:wrap;">{_brands_row}</div>
             </div>
             """, unsafe_allow_html=True)
+
 
             # 브랜드 바 선택값을 기존 사이드바 브랜드 필터에 반영
             if _bar_selected and not selected_brands:
