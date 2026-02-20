@@ -403,7 +403,6 @@ if df.empty:
 if st.session_state.get('sidebar_page', 'catalog') == 'about':
     import sys
     import os
-    # shipping 폴더를 Python 경로에 추가 (상대 임포트 지원)
     _shipping_dir = os.path.join(os.path.dirname(__file__), 'shipping')
     if _shipping_dir not in sys.path:
         sys.path.insert(0, _shipping_dir)
@@ -415,25 +414,23 @@ if st.session_state.get('sidebar_page', 'catalog') == 'about':
     _arrival_col = 'arrival_date'
     if _arrival_col in df.columns:
         _raw_arrivals = df[_arrival_col].dropna().astype(str).tolist()
-        # 빈 문자열, 'nan', 'None' 등 제거
         _arrivals = [v for v in _raw_arrivals if v.strip() and v.lower() not in ('nan', 'none', 'nat', '')]
     else:
-        _arrivals = []  # 컬럼 없으면 기본 테스트 데이터 사용
+        _arrivals = []
 
-    # ── 선박 트래커 렌더링 ──
-    _tracker_html = get_ship_tracker_html(arrival_dates=_arrivals)
-    components.html(_tracker_html, height=310, scrolling=False)
+    # ── 선박 트래커: 현재 언어(lang_code) 전달 ──
+    _tracker_html = get_ship_tracker_html(arrival_dates=_arrivals, lang=lang_code)
+    components.html(_tracker_html, height=290, scrolling=False)
 
     st.markdown("---")
 
-    # ── 3개 언어 소개글 탭 ──
-    _tab_kr, _tab_en, _tab_th = st.tabs(["🇰🇷 한국어", "🇬🇧 English", "🇹🇭 ภาษาไทย"])
+    # ── 소개 텍스트: 사이트 언어(lang_code) 에 따라 자동 표시 ──
+    # 다크모드에서도 확실히 보이도록 흰 카드 배경 + 진한 글자색 고정
 
-    with _tab_kr:
-        st.markdown("""
-<div style="line-height:1.9; font-size:15px; color:#1a1a2e; padding: 10px 4px;">
-<p style="font-size:18px; font-weight:700; margin-bottom:10px;">우리가 이 옷들을 선택한 이유가 있습니다.</p>
-저희는 단순히 구제 의류를 판매하는 곳이 아닙니다.<br>
+    _about_texts = {
+        'KR': {
+            'headline': '우리가 이 옷들을 선택한 이유가 있습니다.',
+            'body': """저희는 단순히 구제 의류를 판매하는 곳이 아닙니다.<br>
 수많은 제품 중에서 <strong>트렌드, 희소성, 그리고 소장 가치</strong>를 기준으로
 셀러가 직접 한 벌 한 벌 엄선한 <strong>프리미엄 세컨핸드 숍</strong>입니다.
 <br><br>
@@ -445,15 +442,11 @@ if st.session_state.get('sidebar_page', 'catalog') == 'about':
 압축 포장이나 마대 포장은 절대 사용하지 않습니다.
 <br><br>
 ✅ <strong>100% 정품만 취급합니다.</strong><br>
-저희 제품은 모두 브랜드가 확인된 진품이며, 셀러의 안목으로 직접 선별된 특별한 한 벌입니다.
-</div>
-        """, unsafe_allow_html=True)
-
-    with _tab_en:
-        st.markdown("""
-<div style="line-height:1.9; font-size:15px; color:#1a1a2e; padding: 10px 4px;">
-<p style="font-size:18px; font-weight:700; margin-bottom:10px;">Every piece here was chosen for a reason.</p>
-We're not your average secondhand shop.<br>
+저희 제품은 모두 브랜드가 확인된 진품이며, 셀러의 안목으로 직접 선별된 특별한 한 벌입니다."""
+        },
+        'EN': {
+            'headline': 'Every piece here was chosen for a reason.',
+            'body': """We're not your average secondhand shop.<br>
 We specialize in <strong>premium pre-loved fashion</strong> — carefully handpicked by our in-house seller
 for their trend relevance, rarity, and collectible value.
 <br><br>
@@ -464,15 +457,11 @@ Every item is <strong>individually wrapped and shipped in boxes</strong> to ensu
 We never use compression packing or bulk baling — because quality deserves to be treated that way.
 <br><br>
 ✅ <strong>100% authentic, always.</strong><br>
-Every piece in our store is a verified genuine item, personally sourced and selected by our seller.
-</div>
-        """, unsafe_allow_html=True)
-
-    with _tab_th:
-        st.markdown("""
-<div style="line-height:1.9; font-size:15px; color:#1a1a2e; padding: 10px 4px;">
-<p style="font-size:18px; font-weight:700; margin-bottom:10px;">ทุกชิ้นที่เราเลือก มีเหตุผลเสมอ</p>
-เราไม่ใช่ร้านเสื้อผ้ามือสองทั่วไป<br>
+Every piece in our store is a verified genuine item, personally sourced and selected by our seller."""
+        },
+        'TH': {
+            'headline': 'ทุกชิ้นที่เราเลือก มีเหตุผลเสมอ',
+            'body': """เราไม่ใช่ร้านเสื้อผ้ามือสองทั่วไป<br>
 เราคัดสรร <strong>เสื้อผ้าพรีเมียมมือสอง</strong> จากเกาหลีโดยเฉพาะ
 ทุกชิ้นผ่านการคัดเลือกด้วยตัวเองจากเซลเลอร์ของเรา โดยพิจารณาจากเทรนด์ ความหายาก และคุณค่าในการสะสม
 <br><br>
@@ -483,11 +472,34 @@ Every piece in our store is a verified genuine item, personally sourced and sele
 เราไม่ใช้การอัดแน่นหรือบรรจุกระสอบ เพราะเราใส่ใจในคุณภาพของสินค้าทุกชิ้น
 <br><br>
 ✅ <strong>สินค้าของเราเป็นของแท้ 100% ทุกชิ้น</strong><br>
-คัดมาเองโดยเซลเลอร์ผู้มีประสบการณ์ ตรวจสอบแล้วว่าเป็นของแท้ทุกชิ้น
+คัดมาเองโดยเซลเลอร์ผู้มีประสบการณ์ ตรวจสอบแล้วว่าเป็นของแท้ทุกชิ้น"""
+        }
+    }
+
+    _content = _about_texts.get(lang_code, _about_texts['EN'])
+
+    # 다크모드에서도 확실히 보이도록 흰 배경 카드로 감쌈
+    st.markdown(f"""
+<div style="
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin: 0 auto;
+    max-width: 860px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+">
+  <p style="font-size:20px; font-weight:800; margin-bottom:16px; color:#1a1a2e; line-height:1.4;">
+    {_content['headline']}
+  </p>
+  <div style="font-size:17px; line-height:2.1; color:#2c2c3a;">
+    {_content['body']}
+  </div>
 </div>
-        """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
     # 소개 페이지에서는 이후 카탈로그 코드 실행 안 함
+
     st.stop()
 
 # --- Auth & Sidebar ---
